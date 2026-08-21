@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export function ReopenTransactionButton({ id, description }: { id: string; description: string }) {
   const router = useRouter();
@@ -30,11 +31,17 @@ export function ReopenTransactionButton({ id, description }: { id: string; descr
   }
 
   return (
-    <div className="row-action-stack">
-      <button className="small-button" disabled={loading} onClick={reopenTransaction} type="button">
+    <div className="flex flex-col items-start gap-1">
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={loading}
+        onClick={reopenTransaction}
+        className="border-border bg-white/5 hover:bg-orange-500/10 hover:text-orange-400 hover:border-orange-500/30"
+      >
         {loading ? "Đang mở lại..." : "Mở lại chưa chuyển"}
-      </button>
-      {error ? <span aria-live="polite">{error}</span> : null}
+      </Button>
+      {error ? <span className="text-xs font-bold text-destructive" aria-live="polite">{error}</span> : null}
     </div>
   );
 }

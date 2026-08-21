@@ -7,6 +7,7 @@ import { deriveEventStatus } from "@/lib/event-status";
 import { getDb } from "@/lib/mongodb";
 import { formatCurrency } from "@/lib/settlement";
 import type { EventDoc, TransactionDoc, UserDoc } from "@/lib/types";
+import { DonutChart, MiniBarChart, ProgressBar } from "@/components/charts";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -40,6 +41,18 @@ export default async function DashboardPage() {
   const participantTurns = events.reduce((sum, event) => sum + event.participants.length, 0);
   const settlementRate = activeTransactions.length > 0 ? Math.round((paidTransactions.length / activeTransactions.length) * 100) : 100;
   const recentEvents = events.slice(0, 5);
+  const monthlySpend = (() => {
+    const map = new Map<string, number>();
+    for (const event of events) {
+      const d = new Date(event.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      map.set(key, (map.get(key) ?? 0) + event.totalAmount);
+    }
+    return Array.from(map.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .slice(-6)
+      .map(([k, v]) => ({ label: k.slice(2), value: v }));
+  })();
 
   return (
     <main className="app-shell dashboard-shell">
@@ -51,15 +64,36 @@ export default async function DashboardPage() {
           <h1>Cần thu {formatCurrency(debtTotal)}</h1>
           <p>Tổng tham khảo từ các giao dịch chưa chuyển. Mỗi nghĩa vụ vẫn được thanh toán và xác nhận riêng theo đúng buổi phát sinh.</p>
         </div>
-        <div className="hero-actions">
-          {session.user.role === "admin" ? (
-            <Link className="primary-button" href="/events/new">
-              Tạo buổi mới
+        <div className="hero-visual flex flex-col items-start gap-5 lg:items-end">
+          <div className="flex items-center gap-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <DonutChart
+              segments={[
+                { value: paidTotal, color: "rgb(52 211 153)", label: "Đã chuyển" },
+                { value: debtTotal, color: "rgb(251 146 60)", label: "Cần thu" }
+              ]}
+              centerValue={`${settlementRate}%`}
+              centerLabel="Xác nhận"
+            />
+            <div className="grid gap-2">
+              <span className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">Phân bổ</span>
+              <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" /> Đã chuyển {formatCurrency(paidTotal)}
+              </div>
+              <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                <span className="h-2.5 w-2.5 rounded-full bg-orange-400" /> Cần thu {formatCurrency(debtTotal)}
+              </div>
+            </div>
+          </div>
+          <div className="hero-actions">
+            {session.user.role === "admin" ? (
+              <Link className="primary-button" href="/events/new">
+                Tạo buổi mới
+              </Link>
+            ) : null}
+            <Link className="ghost-button" href="/transactions">
+              Xem tất cả giao dịch
             </Link>
-          ) : null}
-          <Link className="ghost-button" href="/transactions">
-            Xem tất cả giao dịch
-          </Link>
+          </div>
         </div>
       </section>
 
@@ -73,6 +107,7 @@ export default async function DashboardPage() {
           <span>Tổng chi</span>
           <strong>{formatCurrency(totalSpend)}</strong>
           <small>{events.length} buổi / {participantTurns} lượt tham gia</small>
+          <ProgressBar value={totalSpend > 0 ? (paidTotal / totalSpend) * 100 : 0} />
         </article>
         <article className="metric-card">
           <span>Buổi còn mở</span>
@@ -83,6 +118,7 @@ export default async function DashboardPage() {
           <span>Tỷ lệ xác nhận</span>
           <strong>{settlementRate}%</strong>
           <small>Đã chuyển {formatCurrency(paidTotal)}</small>
+          <ProgressBar value={settlementRate} />
         </article>
       </section>
 
@@ -158,6 +194,20 @@ export default async function DashboardPage() {
               <div><span>Giao dịch</span><strong>{activeTransactions.length}</strong><small>{unpaidTransactions.length} chưa chuyển · {voidTransactions.length} đã hủy</small></div>
               <div><span>Đã thanh toán</span><strong>{formatCurrency(paidTotal)}</strong><small>tiền đã xác nhận</small></div>
             </div>
+          </div>
+          <div className="panel">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">Xu hướng</p>
+                <h2>Chi tiêu theo tháng</h2>
+              </div>
+              <span>{monthlySpend.length} tháng</span>
+            </div>
+            {monthlySpend.length === 0 ? (
+              <p className="empty-state">Chưa có dữ liệu chi tiêu.</p>
+            ) : (
+              <MiniBarChart data={monthlySpend} />
+            )}
           </div>
         </aside>
       </section>

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface DeleteResourceButtonProps {
   endpoint: string;
@@ -39,11 +40,17 @@ export function DeleteResourceButton({ endpoint, label = "Xoá", confirmText, re
   }
 
   return (
-    <div className="row-action-stack">
-      <button className="danger-button" disabled={loading} onClick={handleDelete} type="button">
+    <div className="flex flex-col items-start gap-1">
+      <Button
+        variant="destructive"
+        size="sm"
+        disabled={loading}
+        onClick={handleDelete}
+        className="bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 hover:text-red-300"
+      >
         {loading ? "Đang xoá…" : label}
-      </button>
-      {error ? <span aria-live="polite">{error}</span> : null}
+      </Button>
+      {error ? <span className="text-xs font-bold text-destructive" aria-live="polite">{error}</span> : null}
     </div>
   );
 }

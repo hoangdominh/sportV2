@@ -2,6 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BANKS } from "@/lib/banks";
 
 export function CreateUserForm() {
@@ -9,6 +14,8 @@ export function CreateUserForm() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [role, setRole] = useState("member");
+  const [bankBin, setBankBin] = useState("");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -25,8 +32,8 @@ export function CreateUserForm() {
         name: formData.get("name"),
         username: formData.get("username"),
         password: formData.get("password"),
-        role: formData.get("role"),
-        bankBin: formData.get("bankBin"),
+        role,
+        bankBin,
         bankAccountNo: formData.get("bankAccountNo"),
         bankAccountName: formData.get("bankAccountName")
       })
@@ -40,62 +47,72 @@ export function CreateUserForm() {
     }
 
     form.reset();
+    setRole("member");
+    setBankBin("");
     setMessage(body.message ?? "Đã tạo user");
     router.refresh();
   }
 
   return (
-    <form className="panel event-form" onSubmit={handleSubmit}>
-      <div>
+    <Card className="border-border bg-slate-900/65 shadow-xl backdrop-blur-xl">
+      <CardHeader>
         <p className="eyebrow">User mới</p>
-        <h2>Tạo tài khoản đăng nhập</h2>
-      </div>
-      <label>
-        Tên hiển thị
-        <input name="name" required />
-      </label>
-      <label>
-        Username
-        <input autoComplete="username" name="username" required spellCheck={false} />
-      </label>
-      <label>
-        Mật khẩu
-        <input autoComplete="new-password" name="password" required type="password" />
-      </label>
-      <label>
-        Quyền
-        <select defaultValue="member" name="role">
-          <option value="member">member - chỉ xem</option>
-          <option value="admin">admin - quản trị</option>
-        </select>
-      </label>
-      <div className="bank-section">
-        <p className="eyebrow">QR nhận tiền</p>
-        <label>
-          Ngân hàng
-          <select defaultValue="" name="bankBin">
-            <option value="">Chưa chọn</option>
-            {BANKS.map((bank) => (
-              <option key={bank.bin} value={bank.bin}>
-                {bank.shortName} - {bank.bin}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Số tài khoản
-          <input name="bankAccountNo" />
-        </label>
-        <label>
-          Tên chủ tài khoản
-          <input name="bankAccountName" />
-        </label>
-      </div>
-      {error ? <p className="form-error">{error}</p> : null}
-      {message ? <p className="form-success">{message}</p> : null}
-      <button className="primary-button" disabled={loading} type="submit">
-        {loading ? "Đang tạo…" : "Tạo user"}
-      </button>
-    </form>
+        <CardTitle>Tạo tài khoản đăng nhập</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form className="grid gap-4" onSubmit={handleSubmit}>
+          <div className="grid gap-2">
+            <Label>Tên hiển thị</Label>
+            <Input name="name" required />
+          </div>
+          <div className="grid gap-2">
+            <Label>Username</Label>
+            <Input autoComplete="username" name="username" required spellCheck={false} />
+          </div>
+          <div className="grid gap-2">
+            <Label>Mật khẩu</Label>
+            <Input autoComplete="new-password" name="password" required type="password" />
+          </div>
+          <div className="grid gap-2">
+            <Label>Quyền</Label>
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="member">member - chỉ xem</SelectItem>
+                <SelectItem value="admin">admin - quản trị</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-4 border-t border-border pt-4">
+            <p className="eyebrow">QR nhận tiền</p>
+            <div className="grid gap-2">
+              <Label>Ngân hàng</Label>
+              <Select value={bankBin || "none"} onValueChange={(value) => setBankBin(value === "none" ? "" : value)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Chưa chọn</SelectItem>
+                  {BANKS.map((bank) => (
+                    <SelectItem key={bank.bin} value={bank.bin}>{bank.shortName} - {bank.bin}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Số tài khoản</Label>
+              <Input name="bankAccountNo" />
+            </div>
+            <div className="grid gap-2">
+              <Label>Tên chủ tài khoản</Label>
+              <Input name="bankAccountName" />
+            </div>
+          </div>
+          {error ? <p className="form-error">{error}</p> : null}
+          {message ? <p className="form-success">{message}</p> : null}
+          <Button disabled={loading} type="submit">
+            {loading ? "Đang tạo…" : "Tạo user"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

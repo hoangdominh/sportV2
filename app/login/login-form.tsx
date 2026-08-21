@@ -3,6 +3,10 @@
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export function LoginForm() {
   const router = useRouter();
@@ -31,23 +35,27 @@ export function LoginForm() {
   }
 
   return (
-    <form className="login-card" onSubmit={handleSubmit}>
-      <div>
+    <Card className="self-center border-border bg-slate-900/75 shadow-2xl backdrop-blur-xl">
+      <CardHeader>
         <p className="eyebrow">Đăng nhập</p>
-        <h2>Vào bảng chia tiền</h2>
-      </div>
-      <label>
-        Tên đăng nhập
-        <input autoComplete="username" name="username" required spellCheck={false} />
-      </label>
-      <label>
-        Mật khẩu
-        <input autoComplete="current-password" name="password" required type="password" />
-      </label>
-      {error ? <p className="form-error">{error}</p> : null}
-      <button className="primary-button" disabled={loading} type="submit">
-        {loading ? "Đang kiểm tra…" : "Đăng nhập"}
-      </button>
-    </form>
+        <CardTitle>Vào bảng chia tiền</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form className="grid gap-4" onSubmit={handleSubmit}>
+          <div className="grid gap-2">
+            <Label>Tên đăng nhập</Label>
+            <Input autoComplete="username" name="username" required spellCheck={false} />
+          </div>
+          <div className="grid gap-2">
+            <Label>Mật khẩu</Label>
+            <Input autoComplete="current-password" name="password" required type="password" />
+          </div>
+          {error ? <p className="form-error">{error}</p> : null}
+          <Button disabled={loading} type="submit">
+            {loading ? "Đang kiểm tra…" : "Đăng nhập"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

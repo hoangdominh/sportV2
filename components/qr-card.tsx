@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-
 import { useEffect, useState } from "react";
 import { formatCurrency } from "@/lib/settlement";
 
@@ -18,11 +17,18 @@ export function QrCard({ amount, description, toUserId }: { amount: number; desc
   }, [amount, description, toUserId]);
 
   return (
-    <div className="qr-card">
+    <div className="flex items-center gap-3 text-sm font-black text-muted-foreground">
       {qr ? (
-        <Image alt={`QR chuyển khoản ${formatCurrency(amount)}`} height={92} src={qr} unoptimized width={92} />
+        <Image
+          alt={`QR chuyển khoản ${formatCurrency(amount)}`}
+          className="h-[92px] w-[92px] rounded-xl bg-white object-cover"
+          height={92}
+          src={qr}
+          unoptimized
+          width={92}
+        />
       ) : (
-        <div className="qr-skeleton" />
+        <div className="h-[92px] w-[92px] animate-pulse rounded-xl bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800" />
       )}
       <span>{formatCurrency(amount)}</span>
     </div>

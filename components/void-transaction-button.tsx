@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export function VoidTransactionButton({ id, description }: { id: string; description: string }) {
   const router = useRouter();
@@ -30,11 +31,17 @@ export function VoidTransactionButton({ id, description }: { id: string; descrip
   }
 
   return (
-    <div className="row-action-stack">
-      <button className="danger-button" disabled={loading} onClick={voidTransaction} type="button">
+    <div className="flex flex-col items-start gap-1">
+      <Button
+        variant="destructive"
+        size="sm"
+        disabled={loading}
+        onClick={voidTransaction}
+        className="bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 hover:text-red-300"
+      >
         {loading ? "Đang hủy…" : "Hủy giao dịch"}
-      </button>
-      {error ? <span aria-live="polite">{error}</span> : null}
+      </Button>
+      {error ? <span className="text-xs font-bold text-destructive" aria-live="polite">{error}</span> : null}
     </div>
   );
 }

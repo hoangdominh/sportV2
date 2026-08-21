@@ -2,6 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BANKS } from "@/lib/banks";
 
 interface UserBankFormProps {
@@ -16,6 +20,7 @@ export function UserBankForm({ userId, bankBin = "", bankAccountNo = "", bankAcc
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [selectedBankBin, setSelectedBankBin] = useState(bankBin);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -28,7 +33,7 @@ export function UserBankForm({ userId, bankBin = "", bankAccountNo = "", bankAcc
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        bankBin: formData.get("bankBin"),
+        bankBin: selectedBankBin,
         bankAccountNo: formData.get("bankAccountNo"),
         bankAccountName: formData.get("bankAccountName")
       })
@@ -46,31 +51,34 @@ export function UserBankForm({ userId, bankBin = "", bankAccountNo = "", bankAcc
   }
 
   return (
-    <form className="bank-form" onSubmit={handleSubmit}>
-      <label>
-        Ngân hàng
-        <select defaultValue={bankBin} name="bankBin">
-          <option value="">Chưa chọn</option>
-          {BANKS.map((bank) => (
-            <option key={bank.bin} value={bank.bin}>
-              {bank.shortName} - {bank.bin}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        Số tài khoản
-        <input defaultValue={bankAccountNo} name="bankAccountNo" />
-      </label>
-      <label>
-        Tên chủ tài khoản
-        <input defaultValue={bankAccountName} name="bankAccountName" />
-      </label>
-      <button className="small-button" disabled={loading} type="submit">
-        {loading ? "Đang lưu…" : "Lưu QR"}
-      </button>
-      {error ? <span className="form-error" aria-live="polite">{error}</span> : null}
-      {message ? <span className="form-success" aria-live="polite">{message}</span> : null}
+    <form className="grid gap-3 lg:grid-cols-4" onSubmit={handleSubmit}>
+      <div className="grid gap-2">
+        <Label>Ngân hàng</Label>
+        <Select value={selectedBankBin || "none"} onValueChange={(value) => setSelectedBankBin(value === "none" ? "" : value)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Chưa chọn</SelectItem>
+            {BANKS.map((bank) => (
+              <SelectItem key={bank.bin} value={bank.bin}>{bank.shortName} - {bank.bin}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="grid gap-2">
+        <Label>Số tài khoản</Label>
+        <Input defaultValue={bankAccountNo} name="bankAccountNo" />
+      </div>
+      <div className="grid gap-2">
+        <Label>Tên chủ tài khoản</Label>
+        <Input defaultValue={bankAccountName} name="bankAccountName" />
+      </div>
+      <div className="grid content-end gap-2">
+        <Button disabled={loading} type="submit" variant="outline">
+          {loading ? "Đang lưu…" : "Lưu QR"}
+        </Button>
+      </div>
+      {error ? <span className="form-error lg:col-span-4" aria-live="polite">{error}</span> : null}
+      {message ? <span className="form-success lg:col-span-4" aria-live="polite">{message}</span> : null}
     </form>
   );
 }

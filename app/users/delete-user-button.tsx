@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export function DeleteUserButton({ id, name }: { id: string; name: string }) {
   const router = useRouter();
@@ -27,11 +28,11 @@ export function DeleteUserButton({ id, name }: { id: string; name: string }) {
   }
 
   return (
-    <div className="row-action-stack">
-      <button className="danger-button" disabled={loading} onClick={deleteUser} type="button">
+    <div className="grid justify-items-start gap-1">
+      <Button disabled={loading} onClick={deleteUser} type="button" variant="destructive" size="sm">
         {loading ? "Đang xoá..." : "Xoá"}
-      </button>
-      {error ? <span>{error}</span> : null}
+      </Button>
+      {error ? <span className="text-xs font-bold text-destructive">{error}</span> : null}
     </div>
   );
 }

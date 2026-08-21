@@ -3,7 +3,7 @@ import { SessionProvider } from "@/components/session-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SplitMates | Quản lý chia tiền nhóm",
+  title: "Quản lý chia tiền nhóm",
   description: "Theo dõi chi tiêu nhóm, tối ưu thanh toán và QR chuyển khoản."
 };
 
@@ -14,9 +14,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="vi" style={{ colorScheme: "dark" }}>
-      <body>
-        <SessionProvider>{children}</SessionProvider>
+    <html className="dark" lang="vi" style={{ colorScheme: "dark" }}>
+      <body className="relative">
+        <div className="relative z-10">
+          <SessionProvider>{children}</SessionProvider>
+        </div>
       </body>
     </html>
   );

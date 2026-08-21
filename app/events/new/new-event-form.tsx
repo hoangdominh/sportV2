@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
+import { DatePicker } from "@/components/date-picker";
 
 interface UserOption {
   id: string;
@@ -17,6 +19,7 @@ export function NewEventForm() {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [paidAmounts, setPaidAmounts] = useState<Record<string, string>>({});
   const [adjustmentAmounts, setAdjustmentAmounts] = useState<Record<string, string>>({});
+  const [eventDate, setEventDate] = useState<Date | undefined>(new Date());
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -38,6 +41,11 @@ export function NewEventForm() {
     setError("");
     setLoading(true);
     const formData = new FormData(event.currentTarget);
+    if (!eventDate) {
+      setLoading(false);
+      setError("Chọn ngày của buổi này.");
+      return;
+    }
     const participants = selectedUsers.map((user) => ({
       userId: user.id,
       paidAmount: Number(paidAmounts[user.id] || 0),
@@ -61,7 +69,7 @@ export function NewEventForm() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: formData.get("name"),
-        date: formData.get("date"),
+        date: format(eventDate, "yyyy-MM-dd"),
         participants
       })
     });
@@ -96,8 +104,8 @@ export function NewEventForm() {
           <input name="name" required />
         </label>
         <label>
-          Ngày
-          <input defaultValue={new Date().toISOString().slice(0, 10)} name="date" required type="date" />
+          Ngày (YYYY-MM-DD)
+          <DatePicker date={eventDate} onChange={setEventDate} />
         </label>
 
         <div className="participants-editor">

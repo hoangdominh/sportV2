@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export function TransactionStatusButton({ id }: { id: string }) {
   const router = useRouter();
@@ -26,11 +27,17 @@ export function TransactionStatusButton({ id }: { id: string }) {
   }
 
   return (
-    <div className="row-action-stack">
-      <button className="small-button" disabled={loading} onClick={confirmPaid} type="button">
+    <div className="flex flex-col items-start gap-1">
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={loading}
+        onClick={confirmPaid}
+        className="border-border bg-white/5 hover:bg-emerald-500/10 hover:text-emerald-400 hover:border-emerald-500/30"
+      >
         {loading ? "Đang xác nhận..." : "Xác nhận đã chuyển"}
-      </button>
-      {error ? <span aria-live="polite">{error}</span> : null}
+      </Button>
+      {error ? <span className="text-xs font-bold text-destructive" aria-live="polite">{error}</span> : null}
     </div>
   );
 }
