@@ -3,32 +3,36 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export function TransactionStatusButton({ id }: { id: string }) {
+export function VoidTransactionButton({ id, description }: { id: string; description: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function confirmPaid() {
+  async function voidTransaction() {
+    const reason = window.prompt(`Hủy giao dịch ${description}\n\nNhập lý do hủy:`)?.trim();
+    if (!reason) return;
+
     setLoading(true);
     setError("");
     const response = await fetch(`/api/transactions/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "paid" })
+      body: JSON.stringify({ status: "void", reason })
     });
     const body = (await response.json().catch(() => ({}))) as { message?: string };
     setLoading(false);
-    if (response.ok) {
-      router.refresh();
+
+    if (!response.ok) {
+      setError(body.message ?? "Không hủy được giao dịch");
       return;
     }
-    setError(body.message ?? "Không cập nhật được trạng thái");
+    router.refresh();
   }
 
   return (
     <div className="row-action-stack">
-      <button className="small-button" disabled={loading} onClick={confirmPaid} type="button">
-        {loading ? "Đang xác nhận..." : "Xác nhận đã chuyển"}
+      <button className="danger-button" disabled={loading} onClick={voidTransaction} type="button">
+        {loading ? "Đang hủy…" : "Hủy giao dịch"}
       </button>
       {error ? <span aria-live="polite">{error}</span> : null}
     </div>

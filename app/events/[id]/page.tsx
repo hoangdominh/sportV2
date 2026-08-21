@@ -5,8 +5,11 @@ import { notFound, redirect } from "next/navigation";
 import { AppNav } from "@/components/app-nav";
 import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { QrCard } from "@/components/qr-card";
+import { ReopenTransactionButton } from "@/components/reopen-transaction-button";
 import { TransactionStatusButton } from "@/components/transaction-status-button";
+import { VoidTransactionButton } from "@/components/void-transaction-button";
 import { authOptions } from "@/lib/auth";
+import { deriveEventStatus } from "@/lib/event-status";
 import { getDb } from "@/lib/mongodb";
 import { formatCurrency } from "@/lib/settlement";
 import type { EventDoc, TransactionDoc } from "@/lib/types";
@@ -25,6 +28,9 @@ export default async function EventDetailPage({ params }: { params: { id: string
     .sort({ status: -1, amount: -1 })
     .toArray();
   const bettingPool = event.participants.reduce((sum, participant) => sum + Math.max(participant.adjustmentAmount ?? 0, 0), 0);
+  const voidCount = transactions.filter((transaction) => transaction.status === "void").length;
+  const unpaidCount = transactions.filter((transaction) => transaction.status === "unpaid").length;
+  const eventStatus = deriveEventStatus(transactions.map((transaction) => transaction.status));
 
   return (
     <main className="app-shell">
@@ -41,7 +47,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
           </Link>
           {session.user.role === "admin" ? (
             <DeleteResourceButton
-              confirmText={`Xoá buổi "${event.name}"? Tất cả giao dịch liên quan cũng sẽ bị xoá.`}
+              confirmText={`Xoá buổi "${event.name}"? Chỉ có thể xoá khi chưa có khoản đã thanh toán; giao dịch liên quan sẽ được lưu dưới trạng thái hủy.`}
               endpoint={`/api/events/${event._id.toString()}`}
               redirectTo="/dashboard"
             />
@@ -58,12 +64,12 @@ export default async function EventDetailPage({ params }: { params: { id: string
         <article className="metric-card">
           <span>Mỗi người chịu</span>
           <strong>{formatCurrency(event.perPersonAmount)}</strong>
-          <small>Chia đều theo đầu người</small>
+          <small>Mức cơ sở; chênh lệch 1đ được phân bổ xác định</small>
         </article>
         <article className="metric-card">
           <span>Trạng thái</span>
-          <strong>{event.status === "settled" ? "Đã xong" : "Còn nợ"}</strong>
-          <small>{bettingPool > 0 ? `Kèo thắng ${formatCurrency(bettingPool)}` : `${transactions.filter((transaction) => transaction.status === "unpaid").length} giao dịch chưa chuyển`}</small>
+          <strong>{eventStatus === "settled" ? "Đã xong" : eventStatus === "needs_review" ? "Cần kiểm tra" : "Còn nợ"}</strong>
+          <small>{eventStatus === "needs_review" ? `${voidCount} giao dịch đã hủy` : bettingPool > 0 ? `Kèo thắng ${formatCurrency(bettingPool)}` : `${unpaidCount} giao dịch chưa chuyển`}</small>
         </article>
       </section>
 
@@ -78,7 +84,8 @@ export default async function EventDetailPage({ params }: { params: { id: string
                 <div>
                   <strong>{participant.name}</strong>
                   <span>Đã ứng {formatCurrency(participant.paidAmount)}</span>
-                  <span>Tiền bàn: {formatSignedCurrency(participant.baseBalance ?? participant.paidAmount - event.perPersonAmount)}</span>
+                  <span>Phần chịu: {formatCurrency(participant.shareAmount ?? event.perPersonAmount)}</span>
+                  <span>Tiền bàn: {formatSignedCurrency(participant.baseBalance ?? participant.paidAmount - (participant.shareAmount ?? event.perPersonAmount))}</span>
                   <span>Kèo: {formatSignedCurrency(participant.adjustmentAmount ?? 0)}</span>
                 </div>
                 <b className={participant.balance >= 0 ? "positive" : "negative"}>
@@ -91,7 +98,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
 
         <div className="panel">
           <div className="panel-heading">
-            <h2>Settlement tối ưu</h2>
+            <h2>Giao dịch của buổi</h2>
             <span>{session.user.role === "admin" ? "Có thể đổi trạng thái" : "Chỉ xem"}</span>
           </div>
           <div className="settlement-list">
@@ -107,22 +114,54 @@ export default async function EventDetailPage({ params }: { params: { id: string
                       </p>
                       <span>{formatCurrency(transaction.amount)}</span>
                     </div>
-                    <b className={transaction.status === "paid" ? "status-paid" : "status-unpaid"}>
-                      {transaction.status === "paid" ? "Đã chuyển" : "Chưa chuyển"}
+                    <b className={`status-${transaction.status}`}>
+                      {transaction.status === "paid" ? "Đã chuyển" : transaction.status === "void" ? "Đã hủy" : "Chưa chuyển"}
                     </b>
                   </div>
-                  <div className="settlement-actions">
-                    <QrCard amount={transaction.amount} description={description} toUserId={transaction.toUserId.toString()} />
-                    {session.user.role === "admin" ? (
+                  {transaction.status === "paid" && (transaction.paidAt || transaction.paidByName || transaction.paidBy) ? (
+                    <p className="audit-note">Xác nhận: {formatAudit(transaction.paidAt, transaction.paidByName ?? transaction.paidBy)}</p>
+                  ) : null}
+                  {transaction.reopenedAt ? (
+                    <p className="audit-note">Mở lại: {formatAudit(transaction.reopenedAt, transaction.reopenedByName ?? transaction.reopenedBy)}{transaction.reopenReason ? ` · ${transaction.reopenReason}` : ""}</p>
+                  ) : null}
+                  {transaction.status === "void" ? (
+                    <>
+                      <div className="void-note">
+                        <strong>Lý do hủy</strong>
+                        <span>{transaction.voidReason ?? "Không có lý do"}</span>
+                        {(transaction.voidedAt || transaction.voidedByName || transaction.voidedBy) ? <small>{formatAudit(transaction.voidedAt, transaction.voidedByName ?? transaction.voidedBy)}</small> : null}
+                      </div>
+                      {session.user.role === "admin" ? (
+                        <div className="transaction-actions">
+                          <ReopenTransactionButton
+                            description={`${transaction.fromName} → ${transaction.toName} của ${event.name}`}
+                            id={transaction._id.toString()}
+                          />
+                        </div>
+                      ) : null}
+                    </>
+                  ) : (
+                    <div className="settlement-actions">
+                      <QrCard amount={transaction.amount} description={description} toUserId={transaction.toUserId.toString()} />
+                      {session.user.role === "admin" && transaction.status === "unpaid" ? (
                       <div className="transaction-actions">
-                        <TransactionStatusButton id={transaction._id.toString()} status={transaction.status} />
-                        <DeleteResourceButton
-                          confirmText={`Xoá giao dịch ${transaction.fromName} chuyển cho ${transaction.toName}?`}
-                          endpoint={`/api/transactions/${transaction._id.toString()}`}
+                        <TransactionStatusButton id={transaction._id.toString()} />
+                        <VoidTransactionButton
+                          description={`${transaction.fromName} → ${transaction.toName} của ${event.name}`}
+                          id={transaction._id.toString()}
                         />
                       </div>
-                    ) : null}
-                  </div>
+                      ) : null}
+                      {session.user.role === "admin" && transaction.status === "paid" ? (
+                        <div className="transaction-actions">
+                          <ReopenTransactionButton
+                            description={`${transaction.fromName} → ${transaction.toName} của ${event.name}`}
+                            id={transaction._id.toString()}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
                 </article>
               );
             })}
@@ -136,4 +175,11 @@ export default async function EventDetailPage({ params }: { params: { id: string
 function formatSignedCurrency(amount: number) {
   const sign = amount > 0 ? "+" : "";
   return `${sign}${formatCurrency(amount)}`;
+}
+
+function formatAudit(date?: Date, user?: string) {
+  return [
+    date ? new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short" }).format(date) : null,
+    user
+  ].filter(Boolean).join(" · ");
 }

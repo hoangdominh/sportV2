@@ -1,8 +1,8 @@
 import type { ObjectId } from "mongodb";
 
 export type Role = "admin" | "member";
-export type TransactionStatus = "paid" | "unpaid";
-export type EventStatus = "open" | "settled";
+export type TransactionStatus = "unpaid" | "paid" | "void";
+export type EventStatus = "open" | "settled" | "needs_review";
 
 export interface UserDoc {
   _id: ObjectId;
@@ -22,6 +22,7 @@ export interface ParticipantDoc {
   name: string;
   paidAmount: number;
   adjustmentAmount: number;
+  shareAmount?: number;
   baseBalance: number;
   balance: number;
 }
@@ -47,6 +48,20 @@ export interface TransactionDoc {
   toName: string;
   amount: number;
   status: TransactionStatus;
+  paidAt?: Date;
+  paidBy?: string;
+  paidByUserId?: ObjectId;
+  paidByName?: string;
+  reopenedAt?: Date;
+  reopenedBy?: string;
+  reopenedByUserId?: ObjectId;
+  reopenedByName?: string;
+  reopenReason?: string;
+  voidedAt?: Date;
+  voidedBy?: string;
+  voidedByUserId?: ObjectId;
+  voidedByName?: string;
+  voidReason?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,7 +74,9 @@ export interface SettlementInput {
 }
 
 export interface SettlementResult {
-  participants: Array<SettlementInput & { adjustmentAmount: number; baseBalance: number; balance: number }>;
+  participants: Array<
+    SettlementInput & { adjustmentAmount: number; shareAmount: number; baseBalance: number; balance: number }
+  >;
   totalAmount: number;
   perPersonAmount: number;
   transactions: Array<{

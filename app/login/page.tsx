@@ -11,7 +11,7 @@ export default async function LoginPage() {
     <main className="login-shell">
       <section className="brand-panel">
         <p className="eyebrow">SplitMates</p>
-        <h1>Chia tiền nhóm gọn như một lượt chạm.</h1>
+        <h1>Trả tiền nhanhhh !!!!</h1>
         <p>
           Ghi nhận ai đã ứng tiền, tự động cân bằng nợ và tạo QR chuyển khoản cho từng giao dịch.
         </p>

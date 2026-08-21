@@ -1,9 +1,10 @@
 import { ObjectId } from "mongodb";
 import { NextResponse } from "next/server";
-import { getDb } from "@/lib/mongodb";
+import { deriveEventStatus } from "@/lib/event-status";
+import { getDb, getMongoClient } from "@/lib/mongodb";
 import { requireAdmin, requireSession } from "@/lib/permissions";
 import { calculateSettlement } from "@/lib/settlement";
-import type { EventDoc, TransactionDoc, UserDoc } from "@/lib/types";
+import type { EventDoc, TransactionDoc, TransactionStatus, UserDoc } from "@/lib/types";
 
 interface CreateEventPayload {
   name: string;
@@ -14,7 +15,17 @@ interface CreateEventPayload {
 export async function GET() {
   await requireSession();
   const db = await getDb();
-  const events = await db.collection<EventDoc>("events").find({}).sort({ date: -1 }).toArray();
+  const [events, transactions] = await Promise.all([
+    db.collection<EventDoc>("events").find({}).sort({ date: -1 }).toArray(),
+    db.collection<TransactionDoc>("transactions").find({}, { projection: { eventId: 1, status: 1 } }).toArray()
+  ]);
+  const statusesByEvent = new Map<string, TransactionStatus[]>();
+  for (const transaction of transactions) {
+    const eventId = transaction.eventId.toString();
+    const statuses = statusesByEvent.get(eventId);
+    if (statuses) statuses.push(transaction.status);
+    else statusesByEvent.set(eventId, [transaction.status]);
+  }
   return NextResponse.json(
     events.map((event) => ({
       id: event._id.toString(),
@@ -22,7 +33,7 @@ export async function GET() {
       date: event.date,
       totalAmount: event.totalAmount,
       perPersonAmount: event.perPersonAmount,
-      status: event.status,
+      status: deriveEventStatus(statusesByEvent.get(event._id.toString()) ?? []),
       participants: event.participants.length
     }))
   );
@@ -38,6 +49,10 @@ export async function POST(request: Request) {
 
   if (payload.participants.length < 2) {
     return NextResponse.json({ message: "Chọn ít nhất 2 người tham gia buổi này" }, { status: 400 });
+  }
+
+  if (new Set(payload.participants.map((participant) => participant.userId)).size !== payload.participants.length) {
+    return NextResponse.json({ message: "Người tham gia bị trùng" }, { status: 400 });
   }
 
   if (
@@ -60,7 +75,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Tổng tiền kèo phải bằng 0: người thua nhập số âm, người thắng nhập số dương" }, { status: 400 });
   }
 
-  const db = await getDb();
+  const client = await getMongoClient();
+  const db = client.db();
   const selectedIds = payload.participants.map((participant) => new ObjectId(participant.userId));
   const users = await db.collection<UserDoc>("users").find({ _id: { $in: selectedIds } }).toArray();
   const userMap = new Map(users.map((user) => [user._id.toString(), user]));
@@ -87,32 +103,47 @@ export async function POST(request: Request) {
       name: participant.name,
       paidAmount: participant.paidAmount,
       adjustmentAmount: participant.adjustmentAmount,
+      shareAmount: participant.shareAmount,
       baseBalance: participant.baseBalance,
       balance: participant.balance
     })),
     totalAmount: settlement.totalAmount,
     perPersonAmount: settlement.perPersonAmount,
-    status: settlement.transactions.length === 0 ? "settled" : "open",
+    status: deriveEventStatus(settlement.transactions.map(() => "unpaid")),
     createdAt: now,
     updatedAt: now
   };
 
-  const eventResult = await db.collection<Omit<EventDoc, "_id">>("events").insertOne(eventDoc);
-  const transactions: Array<Omit<TransactionDoc, "_id">> = settlement.transactions.map((transaction) => ({
-    eventId: eventResult.insertedId,
-    fromUserId: new ObjectId(transaction.fromUserId),
-    fromName: transaction.fromName,
-    toUserId: new ObjectId(transaction.toUserId),
-    toName: transaction.toName,
-    amount: transaction.amount,
-    status: "unpaid",
-    createdAt: now,
-    updatedAt: now
-  }));
+  const mongoSession = client.startSession();
+  let eventId: ObjectId | undefined;
 
-  if (transactions.length > 0) {
-    await db.collection<Omit<TransactionDoc, "_id">>("transactions").insertMany(transactions);
+  try {
+    await mongoSession.withTransaction(async () => {
+      const eventResult = await db
+        .collection<Omit<EventDoc, "_id">>("events")
+        .insertOne(eventDoc, { session: mongoSession });
+      eventId = eventResult.insertedId;
+
+      const transactions: Array<Omit<TransactionDoc, "_id">> = settlement.transactions.map((transaction) => ({
+        eventId: eventResult.insertedId,
+        fromUserId: new ObjectId(transaction.fromUserId),
+        fromName: transaction.fromName,
+        toUserId: new ObjectId(transaction.toUserId),
+        toName: transaction.toName,
+        amount: transaction.amount,
+        status: "unpaid",
+        createdAt: now,
+        updatedAt: now
+      }));
+
+      if (transactions.length > 0) {
+        await db.collection<Omit<TransactionDoc, "_id">>("transactions").insertMany(transactions, { session: mongoSession });
+      }
+    });
+  } finally {
+    await mongoSession.endSession();
   }
 
-  return NextResponse.json({ id: eventResult.insertedId.toString() }, { status: 201 });
+  if (!eventId) throw new Error("Không tạo được buổi");
+  return NextResponse.json({ id: eventId.toString() }, { status: 201 });
 }

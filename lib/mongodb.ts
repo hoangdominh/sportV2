@@ -8,7 +8,7 @@ const globalForMongo = globalThis as typeof globalThis & {
   _mongoClientPromise?: Promise<MongoClient>;
 };
 
-function getClientPromise() {
+export function getMongoClient() {
   const uri = process.env.MONGODB_URI;
   if (!uri) {
     throw new Error("Missing MONGODB_URI environment variable");
@@ -26,8 +26,8 @@ function getClientPromise() {
 }
 
 export async function getDb() {
-  const connectedClient = await getClientPromise();
+  const connectedClient = await getMongoClient();
   return connectedClient.db();
 }
 
-export default getClientPromise;
+export default getMongoClient;

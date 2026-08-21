@@ -151,7 +151,7 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 .nav-brand span { display: inline-grid; place-items: center; width: 2rem; height: 2rem; border-radius: 999px; background: var(--green); color: #041008; }
 .nav-links { gap: 0.35rem; }
 .nav-links a { border-radius: 999px; padding: 0.7rem 0.95rem; color: var(--muted); font-weight: 900; }
-.nav-links a:hover { background: rgba(255, 255, 255, 0.06); color: var(--ink); }
+.nav-links a:hover, .nav-links a.active { background: rgba(125, 223, 154, 0.13); color: var(--green); }
 .nav-user { gap: 0.55rem; }
 .nav-user > span { font-weight: 900; }
 .nav-user > b { border-radius: 999px; background: rgba(125, 223, 154, 0.12); color: var(--green); padding: 0.35rem 0.65rem; font-size: 0.78rem; }
@@ -204,9 +204,10 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 .event-row span, .balance-row span, .user-row span, .transaction-row a, .transaction-row span { color: var(--muted); font-size: 0.9rem; font-weight: 800; }
 .event-row-meta { display: grid; justify-items: end; gap: 0.35rem; text-align: right; }
 
-.status-paid, .status-unpaid { border-radius: 999px; padding: 0.35rem 0.7rem; font-size: 0.76rem; white-space: nowrap; font-weight: 900; }
+.status-paid, .status-unpaid, .status-void { border-radius: 999px; padding: 0.35rem 0.7rem; font-size: 0.76rem; white-space: nowrap; font-weight: 900; }
 .status-paid { background: rgba(125, 223, 154, 0.12); color: var(--green); }
 .status-unpaid { background: rgba(255, 154, 95, 0.13); color: var(--orange); }
+.status-void { background: rgba(143, 152, 163, 0.13); color: var(--muted); }
 
 .debt-pill { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.5rem; align-items: center; }
 .debt-pill strong { grid-column: 1 / -1; color: var(--lime); font-size: 1.18rem; }
@@ -271,6 +272,41 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 .bank-form .form-error, .bank-form .form-success { grid-column: 1 / -1; font-size: 0.78rem; }
 .rich-user-row > .row-action-stack { justify-items: start; }
 
+.transactions-shell { width: min(1380px, calc(100% - 2rem)); }
+.transactions-topbar { align-items: flex-end; }
+.page-intro { max-width: 48rem; margin: 1rem 0 0; color: var(--muted); line-height: 1.65; }
+.transaction-filters { display: grid; gap: 1rem; margin-bottom: 1.25rem; }
+.filter-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.8rem; }
+.filter-grid label { font-size: 0.78rem; }
+.filter-grid select { padding-block: 0.75rem; }
+.filter-result { margin: 0; color: var(--muted); font-size: 0.85rem; font-weight: 800; }
+.person-board { display: grid; gap: 1.25rem; }
+.person-block { border: 1px solid var(--line); border-radius: 1.6rem; padding: 1.25rem; background: rgba(10, 12, 15, 0.72); box-shadow: var(--shadow); }
+.person-block-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.person-block-heading h2 { font-size: clamp(1.5rem, 3vw, 2.25rem); }
+.reference-total { display: grid; justify-items: end; gap: 0.18rem; text-align: right; }
+.reference-total span, .reference-total small { color: var(--muted); font-size: 0.75rem; font-weight: 800; }
+.reference-total strong { color: var(--lime); font-size: 1.4rem; letter-spacing: -0.05em; }
+.transaction-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; align-items: stretch; }
+.raw-transaction-card { min-width: 0; border: 1px solid var(--line); border-radius: 1.2rem; padding: 1rem; background: rgba(255, 255, 255, 0.045); display: grid; align-content: start; gap: 0.9rem; }
+.raw-transaction-card.status-card-void { background: rgba(255, 255, 255, 0.025); }
+.raw-transaction-top { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.raw-transaction-top time { color: var(--muted); font-size: 0.76rem; font-weight: 800; text-align: right; }
+.raw-transaction-main { display: grid; gap: 0.65rem; }
+.raw-transaction-main > a, .missing-event { color: var(--blue); font-size: 0.82rem; font-weight: 900; }
+.raw-transaction-main > a:hover { text-decoration: underline; }
+.raw-transaction-main p { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; margin: 0; }
+.raw-transaction-main p span { color: var(--green); }
+.raw-transaction-main > b { font-size: clamp(1.55rem, 2.5vw, 2.15rem); letter-spacing: -0.06em; }
+.raw-transaction-payment { display: grid; gap: 0.9rem; border-top: 1px solid var(--line); padding-top: 0.9rem; }
+.raw-transaction-payment .transaction-actions { justify-content: flex-start; }
+.audit-note { margin: 0; color: var(--muted); font-size: 0.78rem; font-weight: 800; line-height: 1.5; }
+.void-note { display: grid; gap: 0.35rem; border-left: 3px solid var(--muted-2); padding: 0.75rem 0.85rem; background: rgba(255, 255, 255, 0.035); color: var(--muted); font-size: 0.82rem; line-height: 1.5; }
+.void-note strong { color: var(--ink); }
+.void-note small { color: var(--muted-2); font-weight: 800; }
+.dashboard-raw-card > small { color: var(--muted); line-height: 1.5; }
+.dashboard-raw-card .aggregate-main a { color: var(--blue); font-size: 0.82rem; font-weight: 800; }
+
 @keyframes shimmer { to { background-position: -200% 0; } }
 
 @media (prefers-reduced-motion: reduce) {
@@ -291,4 +327,12 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
   .event-row-meta, .row-action-stack { justify-items: start; text-align: left; }
   .aggregate-amount { text-align: left; white-space: normal; }
   .participant-input, .participant-money-grid { grid-template-columns: 1fr; }
+  .filter-grid, .transaction-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 620px) {
+  .filter-grid, .transaction-card-grid { grid-template-columns: 1fr; }
+  .person-block-heading { align-items: flex-start; flex-direction: column; }
+  .reference-total { justify-items: start; text-align: left; }
+  .raw-transaction-payment .qr-card { align-items: flex-start; flex-direction: column; }
 }

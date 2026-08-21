@@ -2,13 +2,10 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { AppNav } from "@/components/app-nav";
-import { BulkTransactionStatusButton } from "@/components/bulk-transaction-status-button";
-import { DeleteResourceButton } from "@/components/delete-resource-button";
-import { QrCard } from "@/components/qr-card";
 import { authOptions } from "@/lib/auth";
+import { deriveEventStatus } from "@/lib/event-status";
 import { getDb } from "@/lib/mongodb";
 import { formatCurrency } from "@/lib/settlement";
-import { aggregateTransactions } from "@/lib/aggregate-transactions";
 import type { EventDoc, TransactionDoc, UserDoc } from "@/lib/types";
 
 export default async function DashboardPage() {
@@ -22,17 +19,26 @@ export default async function DashboardPage() {
     db.collection<UserDoc>("users").countDocuments()
   ]);
 
-  const eventIds = [...new Set(transactions.map((transaction) => transaction.eventId.toString()))];
-  const eventMapDocs = events.filter((event) => eventIds.includes(event._id.toString()));
-  const unpaidGroups = aggregateTransactions(transactions, eventMapDocs, "unpaid");
+  const eventMap = new Map(events.map((event) => [event._id.toString(), event]));
+  const statusesByEvent = new Map<string, TransactionDoc["status"][]>();
+  for (const transaction of transactions) {
+    const eventId = transaction.eventId.toString();
+    const statuses = statusesByEvent.get(eventId);
+    if (statuses) statuses.push(transaction.status);
+    else statusesByEvent.set(eventId, [transaction.status]);
+  }
+  const getEventStatus = (event: EventDoc) => deriveEventStatus(statusesByEvent.get(event._id.toString()) ?? []);
   const unpaidTransactions = transactions.filter((transaction) => transaction.status === "unpaid");
   const paidTransactions = transactions.filter((transaction) => transaction.status === "paid");
+  const activeTransactions = transactions.filter((transaction) => transaction.status !== "void");
+  const voidTransactions = transactions.filter((transaction) => transaction.status === "void");
   const totalSpend = events.reduce((sum, event) => sum + event.totalAmount, 0);
-  const openEvents = events.filter((event) => event.status === "open").length;
-  const debtTotal = unpaidGroups.reduce((sum, group) => sum + group.totalAmount, 0);
+  const openEvents = events.filter((event) => getEventStatus(event) === "open").length;
+  const reviewEvents = events.filter((event) => getEventStatus(event) === "needs_review").length;
+  const debtTotal = unpaidTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
   const paidTotal = paidTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
   const participantTurns = events.reduce((sum, event) => sum + event.participants.length, 0);
-  const settlementRate = transactions.length > 0 ? Math.round((paidTransactions.length / transactions.length) * 100) : 100;
+  const settlementRate = activeTransactions.length > 0 ? Math.round((paidTransactions.length / activeTransactions.length) * 100) : 100;
   const recentEvents = events.slice(0, 5);
 
   return (
@@ -43,7 +49,7 @@ export default async function DashboardPage() {
         <div className="dashboard-hero-copy">
           <p className="eyebrow">Tổng quan nhóm</p>
           <h1>Cần thu {formatCurrency(debtTotal)}</h1>
-          <p>Gộp các khoản chưa thanh toán theo từng cặp người. Một người tham gia nhiều buổi chỉ cần chuyển một lần, chi tiết buổi nằm ngay bên dưới.</p>
+          <p>Tổng tham khảo từ các giao dịch chưa chuyển. Mỗi nghĩa vụ vẫn được thanh toán và xác nhận riêng theo đúng buổi phát sinh.</p>
         </div>
         <div className="hero-actions">
           {session.user.role === "admin" ? (
@@ -61,7 +67,7 @@ export default async function DashboardPage() {
         <article className="metric-card accent">
           <span>Cần thanh toán</span>
           <strong>{formatCurrency(debtTotal)}</strong>
-          <small>{unpaidGroups.length} khoản gộp từ {unpaidTransactions.length} giao dịch</small>
+          <small>{unpaidTransactions.length} giao dịch riêng theo từng buổi</small>
         </article>
         <article className="metric-card">
           <span>Tổng chi</span>
@@ -71,10 +77,10 @@ export default async function DashboardPage() {
         <article className="metric-card">
           <span>Buổi còn mở</span>
           <strong>{openEvents}</strong>
-          <small>Admin cần xác nhận thanh toán</small>
+          <small>{reviewEvents > 0 ? `${reviewEvents} buổi cần kiểm tra giao dịch hủy` : "Admin cần xác nhận thanh toán"}</small>
         </article>
         <article className="metric-card">
-          <span>Tất toán</span>
+          <span>Tỷ lệ xác nhận</span>
           <strong>{settlementRate}%</strong>
           <small>Đã chuyển {formatCurrency(paidTotal)}</small>
         </article>
@@ -85,44 +91,30 @@ export default async function DashboardPage() {
           <div className="panel-heading">
             <div>
               <p className="eyebrow">Cần thanh toán</p>
-              <h2>Giao dịch gộp theo người</h2>
+              <h2>Giao dịch riêng theo từng buổi</h2>
             </div>
-            <span>{unpaidGroups.length} khoản cần xử lý</span>
+            <span>{unpaidTransactions.length} khoản cần xử lý</span>
           </div>
           <div className="aggregate-list">
-            {unpaidGroups.length === 0 ? <p className="empty-state">Không còn khoản nào cần thanh toán.</p> : null}
-            {unpaidGroups.map((group) => (
-              <article className="aggregate-card" key={group.key}>
+            {unpaidTransactions.length === 0 ? <p className="empty-state">Không còn khoản nào cần thanh toán.</p> : null}
+            {unpaidTransactions.slice(0, 10).map((transaction) => {
+              const event = eventMap.get(transaction.eventId.toString());
+              return (
+              <article className="aggregate-card dashboard-raw-card" key={transaction._id.toString()}>
                 <div className="aggregate-main">
                   <div>
                     <p>
-                      <strong>{group.fromName}</strong> chuyển cho <strong>{group.toName}</strong>
+                      <strong>{transaction.fromName}</strong> chuyển cho <strong>{transaction.toName}</strong>
                     </p>
-                    <span>{group.items.length} buổi liên quan</span>
+                    {event ? <Link href={`/events/${event._id.toString()}`}>{event.name} · {new Intl.DateTimeFormat("vi-VN").format(event.date)}</Link> : <span>Buổi đã xoá</span>}
                   </div>
-                  <strong className="aggregate-amount">{formatCurrency(group.totalAmount)}</strong>
+                  <strong className="aggregate-amount">{formatCurrency(transaction.amount)}</strong>
                 </div>
-                <div className="aggregate-details">
-                  {group.items.map((item) => (
-                    <Link href={`/events/${item.eventId}`} key={item.id}>
-                      <span>{item.eventName}</span>
-                      <b>{formatCurrency(item.amount)}</b>
-                    </Link>
-                  ))}
-                </div>
-                <div className="aggregate-actions">
-                  <QrCard amount={group.totalAmount} description={`CHIA TIEN ${group.fromName} ${group.toName}`} toUserId={group.toUserId} />
-                  {session.user.role === "admin" ? (
-                    <BulkTransactionStatusButton
-                      fromName={group.fromName}
-                      fromUserId={group.fromUserId}
-                      toName={group.toName}
-                      toUserId={group.toUserId}
-                    />
-                  ) : null}
-                </div>
+                <small>Thanh toán và xác nhận riêng tại trang giao dịch hoặc chi tiết buổi.</small>
               </article>
-            ))}
+              );
+            })}
+            {unpaidTransactions.length > 10 ? <Link className="ghost-button" href="/transactions">Xem thêm {unpaidTransactions.length - 10} giao dịch</Link> : null}
           </div>
         </div>
 
@@ -146,8 +138,8 @@ export default async function DashboardPage() {
                       <span>{new Intl.DateTimeFormat("vi-VN").format(event.date)} · {formatCurrency(event.totalAmount)}</span>
                     </div>
                   </Link>
-                  <b className={event.status === "settled" ? "status-paid" : "status-unpaid"}>
-                    {event.status === "settled" ? "Đã xong" : "Còn nợ"}
+                  <b className={getEventStatus(event) === "settled" ? "status-paid" : getEventStatus(event) === "needs_review" ? "status-void" : "status-unpaid"}>
+                    {getEventStatus(event) === "settled" ? "Đã xong" : getEventStatus(event) === "needs_review" ? "Cần kiểm tra" : "Còn nợ"}
                   </b>
                 </article>
               ))}
@@ -163,7 +155,7 @@ export default async function DashboardPage() {
             </div>
             <div className="signal-grid">
               <div><span>User</span><strong>{userCount}</strong><small>thành viên</small></div>
-              <div><span>Giao dịch con</span><strong>{transactions.length}</strong><small>{unpaidTransactions.length} chưa chuyển</small></div>
+              <div><span>Giao dịch</span><strong>{activeTransactions.length}</strong><small>{unpaidTransactions.length} chưa chuyển · {voidTransactions.length} đã hủy</small></div>
               <div><span>Đã thanh toán</span><strong>{formatCurrency(paidTotal)}</strong><small>tiền đã xác nhận</small></div>
             </div>
           </div>
