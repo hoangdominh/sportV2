@@ -14,32 +14,40 @@ export default async function DashboardPage() {
   if (!session) redirect("/login");
 
   const db = await getDb();
-  const [events, transactions, userCount] = await Promise.all([
+  const [events, transactionStats, recentUnpaidTransactions, statusesByEventRows, userCount] = await Promise.all([
     db.collection<EventDoc>("events").find({}).sort({ date: -1 }).toArray(),
-    db.collection<TransactionDoc>("transactions").find({}).sort({ createdAt: -1 }).toArray(),
+    db
+      .collection<TransactionDoc>("transactions")
+      .aggregate<{ _id: TransactionDoc["status"]; count: number; total: number }>([
+        { $group: { _id: "$status", count: { $sum: 1 }, total: { $sum: "$amount" } } }
+      ])
+      .toArray(),
+    db.collection<TransactionDoc>("transactions").find({ status: "unpaid" }).sort({ createdAt: -1 }).limit(10).toArray(),
+    db
+      .collection<TransactionDoc>("transactions")
+      .aggregate<{ _id: TransactionDoc["eventId"]; statuses: TransactionDoc["status"][] }>([
+        { $group: { _id: "$eventId", statuses: { $push: "$status" } } }
+      ])
+      .toArray(),
     db.collection<UserDoc>("users").countDocuments()
   ]);
-
   const eventMap = new Map(events.map((event) => [event._id.toString(), event]));
-  const statusesByEvent = new Map<string, TransactionDoc["status"][]>();
-  for (const transaction of transactions) {
-    const eventId = transaction.eventId.toString();
-    const statuses = statusesByEvent.get(eventId);
-    if (statuses) statuses.push(transaction.status);
-    else statusesByEvent.set(eventId, [transaction.status]);
-  }
+  const statusesByEvent = new Map(statusesByEventRows.map((row) => [row._id.toString(), row.statuses]));
+  const transactionSummary = new Map(transactionStats.map((row) => [row._id, row]));
+  const getTransactionCount = (status: TransactionDoc["status"]) => transactionSummary.get(status)?.count ?? 0;
+  const getTransactionTotal = (status: TransactionDoc["status"]) => transactionSummary.get(status)?.total ?? 0;
   const getEventStatus = (event: EventDoc) => deriveEventStatus(statusesByEvent.get(event._id.toString()) ?? []);
-  const unpaidTransactions = transactions.filter((transaction) => transaction.status === "unpaid");
-  const paidTransactions = transactions.filter((transaction) => transaction.status === "paid");
-  const activeTransactions = transactions.filter((transaction) => transaction.status !== "void");
-  const voidTransactions = transactions.filter((transaction) => transaction.status === "void");
+  const unpaidCount = getTransactionCount("unpaid");
+  const paidCount = getTransactionCount("paid");
+  const voidCount = getTransactionCount("void");
+  const activeTransactionCount = unpaidCount + paidCount;
   const totalSpend = events.reduce((sum, event) => sum + event.totalAmount, 0);
   const openEvents = events.filter((event) => getEventStatus(event) === "open").length;
   const reviewEvents = events.filter((event) => getEventStatus(event) === "needs_review").length;
-  const debtTotal = unpaidTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
-  const paidTotal = paidTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+  const debtTotal = getTransactionTotal("unpaid");
+  const paidTotal = getTransactionTotal("paid");
   const participantTurns = events.reduce((sum, event) => sum + event.participants.length, 0);
-  const settlementRate = activeTransactions.length > 0 ? Math.round((paidTransactions.length / activeTransactions.length) * 100) : 100;
+  const settlementRate = activeTransactionCount > 0 ? Math.round((paidCount / activeTransactionCount) * 100) : 100;
   const recentEvents = events.slice(0, 5);
   const monthlySpend = (() => {
     const map = new Map<string, number>();
@@ -101,7 +109,7 @@ export default async function DashboardPage() {
         <article className="metric-card accent">
           <span>Cần thanh toán</span>
           <strong>{formatCurrency(debtTotal)}</strong>
-          <small>{unpaidTransactions.length} giao dịch riêng theo từng buổi</small>
+          <small>{unpaidCount} giao dịch riêng theo từng buổi</small>
         </article>
         <article className="metric-card">
           <span>Tổng chi</span>
@@ -129,11 +137,11 @@ export default async function DashboardPage() {
               <p className="eyebrow">Cần thanh toán</p>
               <h2>Giao dịch riêng theo từng buổi</h2>
             </div>
-            <span>{unpaidTransactions.length} khoản cần xử lý</span>
+            <span>{unpaidCount} khoản cần xử lý</span>
           </div>
           <div className="aggregate-list">
-            {unpaidTransactions.length === 0 ? <p className="empty-state">Không còn khoản nào cần thanh toán.</p> : null}
-            {unpaidTransactions.slice(0, 10).map((transaction) => {
+            {unpaidCount === 0 ? <p className="empty-state">Không còn khoản nào cần thanh toán.</p> : null}
+            {recentUnpaidTransactions.map((transaction) => {
               const event = eventMap.get(transaction.eventId.toString());
               return (
               <article className="aggregate-card dashboard-raw-card" key={transaction._id.toString()}>
@@ -150,7 +158,7 @@ export default async function DashboardPage() {
               </article>
               );
             })}
-            {unpaidTransactions.length > 10 ? <Link className="ghost-button" href="/transactions">Xem thêm {unpaidTransactions.length - 10} giao dịch</Link> : null}
+            {unpaidCount > 10 ? <Link className="ghost-button" href="/transactions">Xem thêm {unpaidCount - 10} giao dịch</Link> : null}
           </div>
         </div>
 
@@ -191,7 +199,7 @@ export default async function DashboardPage() {
             </div>
             <div className="signal-grid">
               <div><span>User</span><strong>{userCount}</strong><small>thành viên</small></div>
-              <div><span>Giao dịch</span><strong>{activeTransactions.length}</strong><small>{unpaidTransactions.length} chưa chuyển · {voidTransactions.length} đã hủy</small></div>
+              <div><span>Giao dịch</span><strong>{activeTransactionCount}</strong><small>{unpaidCount} chưa chuyển · {voidCount} đã hủy</small></div>
               <div><span>Đã thanh toán</span><strong>{formatCurrency(paidTotal)}</strong><small>tiền đã xác nhận</small></div>
             </div>
           </div>

@@ -4,11 +4,16 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
-export function VoidTransactionButton({ id, description }: { id: string; description: string }) {
+interface VoidTransactionButtonProps {
+  id: string;
+  description: string;
+  onVoided?: (reason: string) => void;
+}
+
+export function VoidTransactionButton({ id, description, onVoided }: VoidTransactionButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
   async function voidTransaction() {
     const reason = window.prompt(`Hủy giao dịch ${description}\n\nNhập lý do hủy:`)?.trim();
     if (!reason) return;
@@ -27,7 +32,8 @@ export function VoidTransactionButton({ id, description }: { id: string; descrip
       setError(body.message ?? "Không hủy được giao dịch");
       return;
     }
-    router.refresh();
+    if (onVoided) onVoided(reason);
+    else router.refresh();
   }
 
   return (

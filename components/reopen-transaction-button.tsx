@@ -4,11 +4,16 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
-export function ReopenTransactionButton({ id, description }: { id: string; description: string }) {
+interface ReopenTransactionButtonProps {
+  id: string;
+  description: string;
+  onReopened?: (reason: string) => void;
+}
+
+export function ReopenTransactionButton({ id, description, onReopened }: ReopenTransactionButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
   async function reopenTransaction() {
     const reason = window.prompt(`Mở lại giao dịch ${description}\n\nNhập lý do mở lại:`)?.trim();
     if (!reason) return;
@@ -27,7 +32,8 @@ export function ReopenTransactionButton({ id, description }: { id: string; descr
       setError(body.message ?? "Không mở lại được giao dịch");
       return;
     }
-    router.refresh();
+    if (onReopened) onReopened(reason);
+    else router.refresh();
   }
 
   return (

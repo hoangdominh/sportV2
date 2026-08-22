@@ -4,11 +4,15 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
-export function TransactionStatusButton({ id }: { id: string }) {
+interface TransactionStatusButtonProps {
+  id: string;
+  onConfirmed?: () => void;
+}
+
+export function TransactionStatusButton({ id, onConfirmed }: TransactionStatusButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
   async function confirmPaid() {
     setLoading(true);
     setError("");
@@ -20,7 +24,8 @@ export function TransactionStatusButton({ id }: { id: string }) {
     const body = (await response.json().catch(() => ({}))) as { message?: string };
     setLoading(false);
     if (response.ok) {
-      router.refresh();
+      if (onConfirmed) onConfirmed();
+      else router.refresh();
       return;
     }
     setError(body.message ?? "Không cập nhật được trạng thái");

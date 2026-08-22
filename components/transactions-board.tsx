@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { QrCard } from "@/components/qr-card";
 import { ReopenTransactionButton } from "@/components/reopen-transaction-button";
 import { TransactionStatusButton } from "@/components/transaction-status-button";
@@ -50,6 +50,8 @@ interface FilterOption {
   name: string;
 }
 
+type QuickStatus = Extract<TransactionStatus, "unpaid" | "paid">;
+
 function uniqueOptions(items: TransactionBoardItem[], idKey: "fromUserId" | "toUserId", nameKey: "fromName" | "toName") {
   return [...new Map(items.map((item) => [item[idKey], { id: item[idKey], name: item[nameKey] }])).values()].sort(
     (a, b) => a.name.localeCompare(b.name, "vi")
@@ -82,31 +84,49 @@ export function TransactionsBoard({
   isAdmin: boolean;
   transferPrefix: string;
 }) {
+  const [boardTransactions, setBoardTransactions] = useState(transactions);
   const [fromUserId, setFromUserId] = useState("all");
   const [toUserId, setToUserId] = useState("all");
   const [eventId, setEventId] = useState("all");
   const [status, setStatus] = useState<TransactionStatus | "all">("all");
+  const [quickStatus, setQuickStatus] = useState<QuickStatus>("unpaid");
 
-  const fromOptions = useMemo(() => uniqueOptions(transactions, "fromUserId", "fromName"), [transactions]);
-  const toOptions = useMemo(() => uniqueOptions(transactions, "toUserId", "toName"), [transactions]);
+  useEffect(() => {
+    setBoardTransactions(transactions);
+  }, [transactions]);
+  const fromOptions = useMemo(() => uniqueOptions(boardTransactions, "fromUserId", "fromName"), [boardTransactions]);
+  const toOptions = useMemo(() => uniqueOptions(boardTransactions, "toUserId", "toName"), [boardTransactions]);
   const eventOptions = useMemo<FilterOption[]>(
     () =>
-      [...new Map(transactions.map((item) => [item.eventId, { id: item.eventId, name: item.eventName }])).values()].sort(
+      [...new Map(boardTransactions.map((item) => [item.eventId, { id: item.eventId, name: item.eventName }])).values()].sort(
         (a, b) => a.name.localeCompare(b.name, "vi")
       ),
-    [transactions]
+    [boardTransactions]
   );
 
-  const visibleTransactions = useMemo(
+  const filteredTransactions = useMemo(
     () =>
-      transactions.filter(
+      boardTransactions.filter(
         (transaction) =>
           (fromUserId === "all" || transaction.fromUserId === fromUserId) &&
           (toUserId === "all" || transaction.toUserId === toUserId) &&
           (eventId === "all" || transaction.eventId === eventId) &&
           (status === "all" || transaction.status === status)
       ),
-    [eventId, fromUserId, status, toUserId, transactions]
+    [boardTransactions, eventId, fromUserId, status, toUserId]
+  );
+
+  const quickStatusCounts = useMemo(
+    () => ({
+      unpaid: filteredTransactions.filter((transaction) => transaction.status === "unpaid").length,
+      paid: filteredTransactions.filter((transaction) => transaction.status === "paid").length
+    }),
+    [filteredTransactions]
+  );
+
+  const visibleTransactions = useMemo(
+    () => filteredTransactions.filter((transaction) => transaction.status === quickStatus),
+    [filteredTransactions, quickStatus]
   );
 
   const groups = useMemo(() => {
@@ -118,6 +138,50 @@ export function TransactionsBoard({
     }
     return [...grouped.values()].sort((a, b) => a.fromName.localeCompare(b.fromName, "vi"));
   }, [visibleTransactions]);
+
+  const markTransactionPaid = (id: string) => {
+    setBoardTransactions((current) =>
+      current.map((transaction) =>
+        transaction.id === id
+          ? {
+              ...transaction,
+              status: "paid",
+              paidAt: new Date().toISOString()
+            }
+          : transaction
+      )
+    );
+  };
+
+  const markTransactionVoided = (id: string, reason: string) => {
+    setBoardTransactions((current) =>
+      current.map((transaction) =>
+        transaction.id === id
+          ? {
+              ...transaction,
+              status: "void",
+              voidedAt: new Date().toISOString(),
+              voidReason: reason
+            }
+          : transaction
+      )
+    );
+  };
+
+  const markTransactionReopened = (id: string, reason: string) => {
+    setBoardTransactions((current) =>
+      current.map((transaction) =>
+        transaction.id === id
+          ? {
+              ...transaction,
+              status: "unpaid",
+              reopenedAt: new Date().toISOString(),
+              reopenReason: reason
+            }
+          : transaction
+      )
+    );
+  };
 
   const renderTransactionCard = (transaction: TransactionBoardItem) => {
     const description = `${transferPrefix} ${transaction.eventName} ${transaction.fromName}`;
@@ -173,20 +237,32 @@ export function TransactionsBoard({
                 <QrCard amount={transaction.amount} description={description} toUserId={transaction.toUserId} />
                 {isAdmin && transaction.status === "unpaid" ? (
                   <div className="flex flex-wrap gap-2">
-                    <TransactionStatusButton id={transaction.id} />
-                    <VoidTransactionButton description={`${transaction.fromName} → ${transaction.toName} của ${transaction.eventName}`} id={transaction.id} />
+                    <TransactionStatusButton id={transaction.id} onConfirmed={() => markTransactionPaid(transaction.id)} />
+                    <VoidTransactionButton
+                      description={`${transaction.fromName} → ${transaction.toName} của ${transaction.eventName}`}
+                      id={transaction.id}
+                      onVoided={(reason) => markTransactionVoided(transaction.id, reason)}
+                    />
                   </div>
                 ) : null}
                 {isAdmin && transaction.status === "paid" ? (
                   <div className="flex flex-wrap gap-2">
-                    <ReopenTransactionButton description={`${transaction.fromName} → ${transaction.toName} của ${transaction.eventName}`} id={transaction.id} />
+                    <ReopenTransactionButton
+                      description={`${transaction.fromName} → ${transaction.toName} của ${transaction.eventName}`}
+                      id={transaction.id}
+                      onReopened={(reason) => markTransactionReopened(transaction.id, reason)}
+                    />
                   </div>
                 ) : null}
               </div>
             </>
           ) : isAdmin ? (
             <div className="flex flex-wrap gap-2">
-              <ReopenTransactionButton description={`${transaction.fromName} → ${transaction.toName} của ${transaction.eventName}`} id={transaction.id} />
+              <ReopenTransactionButton
+                description={`${transaction.fromName} → ${transaction.toName} của ${transaction.eventName}`}
+                id={transaction.id}
+                onReopened={(reason) => markTransactionReopened(transaction.id, reason)}
+              />
             </div>
           ) : null}
         </CardContent>
@@ -242,8 +318,33 @@ export function TransactionsBoard({
               </Select>
             </div>
           </div>
+          <div className="mt-4 inline-flex min-h-11 rounded-lg bg-[#151b2e] p-1" role="tablist" aria-label="Lọc nhanh trạng thái giao dịch">
+            {([
+              { value: "unpaid", label: "Chưa chuyển", count: quickStatusCounts.unpaid },
+              { value: "paid", label: "Đã chuyển", count: quickStatusCounts.paid }
+            ] satisfies Array<{ value: QuickStatus; label: string; count: number }>).map((tab) => (
+              <button
+                key={tab.value}
+                type="button"
+                role="tab"
+                aria-selected={quickStatus === tab.value}
+                onClick={() => setQuickStatus(tab.value)}
+                className={cn(
+                  "min-h-9 rounded-lg px-4 text-sm font-black text-[#8a93a6] transition-colors hover:text-foreground",
+                  quickStatus === "unpaid" &&
+                    tab.value === "unpaid" &&
+                    "bg-orange-500/15 text-orange-200 shadow-[inset_0_0_0_1px_rgba(251,146,60,0.22)]",
+                  quickStatus === "paid" &&
+                    tab.value === "paid" &&
+                    "bg-emerald-500/15 text-emerald-200 shadow-[inset_0_0_0_1px_rgba(52,211,153,0.22)]"
+                )}
+              >
+                {tab.label} <span className="text-xs font-bold opacity-70">({tab.count})</span>
+              </button>
+            ))}
+          </div>
           <p className="mt-3 text-xs font-black text-muted-foreground">
-            Đang hiển thị {visibleTransactions.length}/{transactions.length} giao dịch riêng theo từng buổi.
+            Đang hiển thị {visibleTransactions.length}/{boardTransactions.length} giao dịch riêng theo từng buổi.
           </p>
         </CardContent>
       </Card>
@@ -251,21 +352,26 @@ export function TransactionsBoard({
       <section className="space-y-5">
         {groups.length === 0 ? (
           <Card className="border-border bg-slate-900/60 backdrop-blur-xl">
-            <CardContent className="p-6 text-center text-muted-foreground">
-              Không có giao dịch phù hợp với bộ lọc.
+            <CardContent className="flex flex-col items-center gap-3 p-6 text-center text-muted-foreground">
+              <p>{quickStatus === "unpaid" ? "Đã thu đủ tất cả — không còn khoản nào chưa chuyển." : "Chưa có giao dịch đã chuyển phù hợp với bộ lọc."}</p>
+              {quickStatus === "unpaid" ? (
+                <button
+                  type="button"
+                  onClick={() => setQuickStatus("paid")}
+                  className="rounded-lg border border-border bg-white/5 px-3 py-2 text-xs font-black text-foreground transition-colors hover:border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-300"
+                >
+                  Xem đã chuyển
+                </button>
+              ) : null}
             </CardContent>
           </Card>
         ) : null}
         {groups.map((group) => {
           const unpaidItems = group.items.filter((item) => item.status === "unpaid");
           const paidItems = group.items.filter((item) => item.status === "paid");
-          const voidItems = group.items.filter((item) => item.status === "void");
           const unpaidTotal = unpaidItems.reduce((sum, item) => sum + item.amount, 0);
           const paidTotal = paidItems.reduce((sum, item) => sum + item.amount, 0);
           const referenceTotal = group.items.reduce((sum, item) => sum + item.amount, 0);
-          const showUnpaid = status === "all" || status === "unpaid";
-          const showPaid = status === "all" || status === "paid";
-          const showVoid = status === "all" || status === "void";
 
           return (
             <Card className="overflow-hidden border-border bg-slate-900/70 shadow-xl backdrop-blur-xl" key={group.fromUserId}>
@@ -289,49 +395,32 @@ export function TransactionsBoard({
                 </div>
               </CardHeader>
               <CardContent className="space-y-5 p-5">
-                <div className={cn("grid gap-5", status === "all" && "xl:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]")}>
-                  {showUnpaid ? (
-                    <section className="rounded-2xl border border-orange-400/20 bg-orange-500/[0.035] p-4">
-                      <div className="mb-4 flex items-end justify-between gap-3">
-                        <div>
-                          <p className="text-xs font-black uppercase tracking-widest text-orange-300">Chưa chuyển</p>
-                          <h3 className="text-lg font-black">Khoản cần xử lý</h3>
-                        </div>
-                        <Badge variant="unpaid">{unpaidItems.length}</Badge>
-                      </div>
-                      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                        {unpaidItems.length > 0 ? unpaidItems.map(renderTransactionCard) : <p className="empty-state">Không có khoản chưa chuyển.</p>}
-                      </div>
-                    </section>
-                  ) : null}
-
-                  {showPaid ? (
-                    <section className="rounded-2xl border border-emerald-400/15 bg-emerald-500/[0.025] p-4">
-                      <div className="mb-4 flex items-end justify-between gap-3">
-                        <div>
-                          <p className="text-xs font-black uppercase tracking-widest text-emerald-300">Đã chuyển</p>
-                          <h3 className="text-lg font-black text-muted-foreground">Lưu vết xác nhận</h3>
-                        </div>
-                        <Badge variant="paid">{paidItems.length}</Badge>
-                      </div>
-                      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                        {paidItems.length > 0 ? paidItems.map(renderTransactionCard) : <p className="empty-state">Chưa có khoản đã chuyển.</p>}
-                      </div>
-                    </section>
-                  ) : null}
-                </div>
-
-                {showVoid && voidItems.length > 0 ? (
-                  <section className="rounded-2xl border border-slate-500/20 bg-white/[0.015] p-4">
+                {quickStatus === "unpaid" ? (
+                  <section className="rounded-2xl border border-orange-400/20 bg-orange-500/[0.035] p-4">
                     <div className="mb-4 flex items-end justify-between gap-3">
                       <div>
-                        <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Đã hủy</p>
-                        <h3 className="text-lg font-black text-muted-foreground">Không tính vào thanh toán</h3>
+                        <p className="text-xs font-black uppercase tracking-widest text-orange-300">Chưa chuyển</p>
+                        <h3 className="text-lg font-black">Khoản cần xử lý</h3>
                       </div>
-                      <Badge variant="void">{voidItems.length}</Badge>
+                      <Badge variant="unpaid">{unpaidItems.length}</Badge>
                     </div>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                      {voidItems.map(renderTransactionCard)}
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+                      {unpaidItems.map(renderTransactionCard)}
+                    </div>
+                  </section>
+                ) : null}
+
+                {quickStatus === "paid" ? (
+                  <section className="rounded-2xl border border-emerald-400/15 bg-emerald-500/[0.025] p-4">
+                    <div className="mb-4 flex items-end justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-widest text-emerald-300">Đã chuyển</p>
+                        <h3 className="text-lg font-black text-muted-foreground">Lưu vết xác nhận</h3>
+                      </div>
+                      <Badge variant="paid">{paidItems.length}</Badge>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+                      {paidItems.map(renderTransactionCard)}
                     </div>
                   </section>
                 ) : null}
