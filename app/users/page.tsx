@@ -50,13 +50,15 @@ export default async function UsersPage() {
                   bankAccountName={user.bankAccountName}
                   bankAccountNo={user.bankAccountNo}
                   bankBin={user.bankBin}
+                  role={user.role}
                   userId={user._id.toString()}
-                />
-                {session.user.id !== user._id.toString() ? (
-                  <DeleteUserButton id={user._id.toString()} name={user.name} />
-                ) : (
-                  <span className="muted">Đang đăng nhập</span>
-                )}
+                >
+                  {session.user.id !== user._id.toString() ? (
+                    <DeleteUserButton id={user._id.toString()} name={user.name} />
+                  ) : (
+                    <span className="muted self-center text-sm font-black">Đang đăng nhập</span>
+                  )}
+                </UserBankForm>
               </div>
             ))}
           </div>

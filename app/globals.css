@@ -12,8 +12,8 @@
     --card-foreground: 210 40% 96%;
     --popover: 222 47% 5%;
     --popover-foreground: 210 40% 96%;
-    --primary: 142 60% 68%;
-    --primary-foreground: 142 80% 5%;
+    --primary: 199 89% 48%;
+    --primary-foreground: 210 40% 98%;
     --secondary: 217 19% 12%;
     --secondary-foreground: 210 40% 96%;
     --muted: 217 19% 12%;
@@ -24,7 +24,7 @@
     --destructive-foreground: 210 40% 98%;
     --border: 217 19% 18%;
     --input: 217 19% 15%;
-    --ring: 142 60% 68%;
+    --ring: 199 89% 48%;
     --radius: 0.75rem;
   }
 
@@ -89,7 +89,7 @@
   .panel h2, .login-card h2 { @apply text-2xl font-black tracking-tight; }
 
   .primary-button { @apply inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-5 py-2.5 text-sm font-black text-primary-foreground shadow-lg transition hover:bg-primary/90; }
-  .ghost-button, .small-button { @apply inline-flex min-h-10 items-center justify-center rounded-full border border-border bg-white/5 px-4 py-2 text-sm font-black text-foreground transition hover:border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-400; }
+  .ghost-button, .small-button { @apply inline-flex min-h-10 items-center justify-center rounded-full border border-border bg-white/5 px-4 py-2 text-sm font-black text-foreground transition hover:border-primary/30 hover:bg-primary/10 hover:text-primary; }
   .danger-button { @apply inline-flex min-h-10 items-center justify-center rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-black text-red-400 transition hover:bg-red-500/15; }
   .primary-button:disabled, .ghost-button:disabled, .small-button:disabled, .danger-button:disabled { @apply cursor-wait opacity-70; }
 
@@ -118,10 +118,22 @@
   .metric-card strong { @apply block text-3xl font-black tracking-[-0.06em]; }
 
   .dashboard-hero { @apply relative mb-5 grid gap-5 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl shadow-black/40 backdrop-blur-2xl lg:grid-cols-[1.2fr_0.8fr] lg:p-10; }
-  .dashboard-hero::before { content: ""; @apply pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-emerald-400/20 blur-3xl; }
-  .dashboard-hero-copy { @apply grid gap-4; }
-  .dashboard-hero-copy h1 { @apply font-display text-5xl font-black tracking-[-0.07em] lg:text-7xl; }
+  .dashboard-hero::before { content: ""; @apply pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-primary/20 blur-3xl; }
+  .dashboard-hero-copy { @apply grid gap-3; }
+  .dashboard-hero-copy h1 { @apply font-display text-[32px] font-black leading-none tracking-[-0.06em]; }
   .dashboard-hero-copy p:not(.eyebrow) { @apply max-w-3xl text-muted-foreground leading-7; }
+  .dashboard-summary-strip { @apply lg:grid-cols-3; }
+  .dashboard-summary-strip .metric-card.accent { @apply border-orange-400/20 bg-gradient-to-br from-orange-400/95 to-amber-300 text-slate-950 shadow-[0_18px_50px_-12px_rgba(251,146,60,0.42)]; }
+  .dashboard-list-note { @apply -mt-1 mb-3 text-xs font-bold text-muted-foreground; }
+  .payment-panel .aggregate-list { @apply gap-0; }
+  .aggregate-row { @apply flex items-center gap-3 py-3; border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
+  .aggregate-row:last-child { border-bottom: 0; }
+  .aggregate-person-avatar { @apply grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-sm font-black text-primary; }
+  .aggregate-row-main { @apply min-w-0 flex-1; }
+  .aggregate-row-main p { @apply truncate text-sm font-bold; }
+  .aggregate-row-main a, .aggregate-row-main span { @apply mt-1 block truncate text-xs font-bold text-muted-foreground; }
+  .aggregate-row .aggregate-amount { @apply shrink-0 text-right text-sm font-black; }
+  .dashboard-side-stack .event-icon { @apply bg-primary/10 text-primary; }
 
   .content-grid, .dashboard-payment-grid, .transactions-layout { @apply grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.65fr)]; }
   .detail-grid { @apply lg:grid-cols-[0.85fr_1.15fr]; }
@@ -149,6 +161,7 @@
   .bank-section { @apply grid gap-4 border-t border-border pt-4; }
   .bank-form { @apply lg:grid-cols-4; }
   .rich-user-row { @apply grid gap-5; }
+  .user-action-row { @apply flex flex-wrap items-start gap-2; }
   .user-main-info { @apply grid gap-1; }
 
   .audit-note { @apply text-xs font-black text-muted-foreground; }

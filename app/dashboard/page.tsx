@@ -70,7 +70,7 @@ export default async function DashboardPage() {
         <div className="dashboard-hero-copy">
           <p className="eyebrow">Tổng quan nhóm</p>
           <h1>Cần thu {formatCurrency(debtTotal)}</h1>
-          <p>Tổng tham khảo từ các giao dịch chưa chuyển. Mỗi nghĩa vụ vẫn được thanh toán và xác nhận riêng theo đúng buổi phát sinh.</p>
+          <p>{unpaidCount} giao dịch còn lại · đã xác nhận {formatCurrency(paidTotal)}</p>
         </div>
         <div className="hero-visual flex flex-col items-start gap-5 lg:items-end">
           <div className="flex items-center gap-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
@@ -82,15 +82,6 @@ export default async function DashboardPage() {
               centerValue={`${settlementRate}%`}
               centerLabel="Xác nhận"
             />
-            <div className="grid gap-2">
-              <span className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">Phân bổ</span>
-              <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" /> Đã chuyển {formatCurrency(paidTotal)}
-              </div>
-              <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-                <span className="h-2.5 w-2.5 rounded-full bg-orange-400" /> Cần thu {formatCurrency(debtTotal)}
-              </div>
-            </div>
           </div>
           <div className="hero-actions">
             {session.user.role === "admin" ? (
@@ -106,11 +97,6 @@ export default async function DashboardPage() {
       </section>
 
       <section className="metric-strip dashboard-summary-strip">
-        <article className="metric-card accent">
-          <span>Cần thanh toán</span>
-          <strong>{formatCurrency(debtTotal)}</strong>
-          <small>{unpaidCount} giao dịch riêng theo từng buổi</small>
-        </article>
         <article className="metric-card">
           <span>Tổng chi</span>
           <strong>{formatCurrency(totalSpend)}</strong>
@@ -122,11 +108,10 @@ export default async function DashboardPage() {
           <strong>{openEvents}</strong>
           <small>{reviewEvents > 0 ? `${reviewEvents} buổi cần kiểm tra giao dịch hủy` : "Admin cần xác nhận thanh toán"}</small>
         </article>
-        <article className="metric-card">
-          <span>Tỷ lệ xác nhận</span>
-          <strong>{settlementRate}%</strong>
-          <small>Đã chuyển {formatCurrency(paidTotal)}</small>
-          <ProgressBar value={settlementRate} />
+        <article className="metric-card accent">
+          <span>Cần xử lý</span>
+          <strong>{unpaidCount}</strong>
+          <small>khoản đang chờ xác nhận</small>
         </article>
       </section>
 
@@ -139,23 +124,30 @@ export default async function DashboardPage() {
             </div>
             <span>{unpaidCount} khoản cần xử lý</span>
           </div>
+          <p className="dashboard-list-note">Thanh toán và xác nhận riêng tại trang giao dịch hoặc chi tiết buổi.</p>
           <div className="aggregate-list">
             {unpaidCount === 0 ? <p className="empty-state">Không còn khoản nào cần thanh toán.</p> : null}
             {recentUnpaidTransactions.map((transaction) => {
               const event = eventMap.get(transaction.eventId.toString());
               return (
-              <article className="aggregate-card dashboard-raw-card" key={transaction._id.toString()}>
-                <div className="aggregate-main">
-                  <div>
+                <article className="aggregate-row" key={transaction._id.toString()}>
+                  <div className="aggregate-person-avatar" aria-hidden="true">
+                    {transaction.fromName.trim().charAt(0).toUpperCase()}
+                  </div>
+                  <div className="aggregate-row-main">
                     <p>
                       <strong>{transaction.fromName}</strong> chuyển cho <strong>{transaction.toName}</strong>
                     </p>
-                    {event ? <Link href={`/events/${event._id.toString()}`}>{event.name} · {new Intl.DateTimeFormat("vi-VN").format(event.date)}</Link> : <span>Buổi đã xoá</span>}
+                    {event ? (
+                      <Link href={`/events/${event._id.toString()}`}>
+                        {event.name} · {new Intl.DateTimeFormat("vi-VN", { day: "numeric", month: "numeric" }).format(event.date)}
+                      </Link>
+                    ) : (
+                      <span>Buổi đã xoá</span>
+                    )}
                   </div>
                   <strong className="aggregate-amount">{formatCurrency(transaction.amount)}</strong>
-                </div>
-                <small>Thanh toán và xác nhận riêng tại trang giao dịch hoặc chi tiết buổi.</small>
-              </article>
+                </article>
               );
             })}
             {unpaidCount > 10 ? <Link className="ghost-button" href="/transactions">Xem thêm {unpaidCount - 10} giao dịch</Link> : null}
@@ -166,7 +158,6 @@ export default async function DashboardPage() {
           <div className="panel">
             <div className="panel-heading">
               <div>
-                <p className="eyebrow">Buổi gần đây</p>
                 <h2>Lịch sử buổi</h2>
               </div>
               <span>{recentEvents.length}/{events.length}</span>
@@ -214,7 +205,7 @@ export default async function DashboardPage() {
             {monthlySpend.length === 0 ? (
               <p className="empty-state">Chưa có dữ liệu chi tiêu.</p>
             ) : (
-              <MiniBarChart data={monthlySpend} />
+              <MiniBarChart color="rgb(14 165 233)" data={monthlySpend} />
             )}
           </div>
         </aside>
