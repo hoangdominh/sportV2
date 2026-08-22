@@ -369,29 +369,13 @@ export function TransactionsBoard({
         {groups.map((group) => {
           const unpaidItems = group.items.filter((item) => item.status === "unpaid");
           const paidItems = group.items.filter((item) => item.status === "paid");
-          const unpaidTotal = unpaidItems.reduce((sum, item) => sum + item.amount, 0);
-          const paidTotal = paidItems.reduce((sum, item) => sum + item.amount, 0);
-          const referenceTotal = group.items.reduce((sum, item) => sum + item.amount, 0);
 
           return (
             <Card className="overflow-hidden border-border bg-slate-900/70 shadow-xl backdrop-blur-xl" key={group.fromUserId}>
-              <CardHeader className="flex flex-col gap-4 border-b border-border p-5 sm:flex-row sm:items-end sm:justify-between">
+              <CardHeader className="border-b border-border p-5">
                 <div>
                   <p className="text-xs font-black uppercase tracking-widest text-emerald-400">Người chuyển</p>
                   <h2 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">{group.fromName}</h2>
-                </div>
-                <div className="grid grid-cols-2 gap-3 text-left sm:min-w-[360px]">
-                  <div className="rounded-xl border border-orange-400/20 bg-orange-500/10 p-3">
-                    <span className="text-xs font-black uppercase tracking-widest text-orange-300">Cần chuyển</span>
-                    <strong className="mt-1 block text-lg font-black tracking-tight text-orange-300">{formatCurrency(unpaidTotal)}</strong>
-                    <small className="text-xs font-bold text-muted-foreground">{unpaidItems.length} giao dịch</small>
-                  </div>
-                  <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3">
-                    <span className="text-xs font-black uppercase tracking-widest text-emerald-300">Đã chuyển</span>
-                    <strong className="mt-1 block text-lg font-black tracking-tight text-emerald-300">{formatCurrency(paidTotal)}</strong>
-                    <small className="text-xs font-bold text-muted-foreground">{paidItems.length} giao dịch</small>
-                  </div>
-                  <p className="col-span-2 text-right text-xs font-black text-muted-foreground">Tổng tham khảo: {formatCurrency(referenceTotal)}</p>
                 </div>
               </CardHeader>
               <CardContent className="space-y-5 p-5">
