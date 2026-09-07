@@ -46,11 +46,11 @@ export function UserBankForm({ children, userId, role, bankBin = "", bankAccount
     setLoading(false);
 
     if (!response.ok) {
-      setError(body.message ?? "Không cập nhật được QR");
+      setError(body.message ?? "Không cập nhật được thông tin user");
       return;
     }
 
-    setMessage(body.message ?? "Đã cập nhật QR");
+    setMessage(body.message ?? "Đã cập nhật thông tin user");
     router.refresh();
   }
 
@@ -78,24 +78,23 @@ export function UserBankForm({ children, userId, role, bankBin = "", bankAccount
           <Input defaultValue={bankAccountName} name="bankAccountName" />
         </div>
         <div className="grid gap-2">
-          <Label>Vai trò</Label>
+          <Label>Vai trò tài khoản</Label>
           <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as "admin" | "member")}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="member">Member</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="member">Member - chỉ xem</SelectItem>
+              <SelectItem value="admin">Admin - quản trị</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
       <div className="user-action-row">
         <Button disabled={loading} type="submit" size="sm">
-          {loading ? "Đang lưu…" : "Lưu QR"}
+          {loading ? "Đang lưu…" : "Lưu thông tin"}
         </Button>
         {children}
       </div>
       {error ? <span className="form-error" aria-live="polite">{error}</span> : null}
-      {message ? <span className="form-success" aria-live="polite">{message}</span> : null}
     </form>
   );
 }

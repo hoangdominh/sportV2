@@ -63,7 +63,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 }
 
 export async function DELETE(_: Request, { params }: { params: { id: string } }) {
-  const adminSession = await requireAdmin();
+  await requireAdmin();
   if (!ObjectId.isValid(params.id)) {
     return NextResponse.json({ message: "Event id không hợp lệ" }, { status: 400 });
   }
@@ -72,7 +72,7 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
   const db = client.db();
   const eventId = new ObjectId(params.id);
   const mongoSession = client.startSession();
-  let outcome: "deleted" | "not_found" | "has_paid" = "not_found";
+  let outcome: "deleted" | "not_found" | "not_settled" = "not_found";
   try {
     await mongoSession.withTransaction(async () => {
       const event = await db.collection<EventDoc>("events").findOne(
@@ -84,31 +84,16 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
         return;
       }
 
-      const paidTransaction = await db.collection<TransactionDoc>("transactions").findOne(
-        { eventId, paidAt: { $exists: true } },
+      const unsettledTransaction = await db.collection<TransactionDoc>("transactions").findOne(
+        { eventId, status: { $ne: "paid" } },
         { session: mongoSession, projection: { _id: 1 } }
       );
-      if (paidTransaction) {
-        outcome = "has_paid";
+      if (unsettledTransaction) {
+        outcome = "not_settled";
         return;
       }
 
-      const now = new Date();
-      await db.collection<TransactionDoc>("transactions").updateMany(
-        { eventId, status: "unpaid" },
-        {
-          $set: {
-            status: "void",
-            voidedAt: now,
-            voidedBy: adminSession.user.name,
-            voidedByUserId: new ObjectId(adminSession.user.id),
-            voidedByName: adminSession.user.name,
-            voidReason: `Buổi đã bị xoá: ${event.name}`,
-            updatedAt: now
-          }
-        },
-        { session: mongoSession }
-      );
+      await db.collection<TransactionDoc>("transactions").deleteMany({ eventId }, { session: mongoSession });
       await db.collection<EventDoc>("events").deleteOne({ _id: eventId }, { session: mongoSession });
       outcome = "deleted";
     });
@@ -119,11 +104,11 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
   if (outcome === "not_found") {
     return NextResponse.json({ message: "Không tìm thấy buổi" }, { status: 404 });
   }
-  if (outcome === "has_paid") {
+  if (outcome === "not_settled") {
     return NextResponse.json(
-      { message: "Không thể xoá buổi đã có giao dịch được xác nhận thanh toán" },
+      { message: "Chỉ có thể xoá hẳn buổi khi tất cả giao dịch đã thanh toán xong" },
       { status: 409 }
     );
   }
-  return NextResponse.json({ message: "Đã xoá buổi; giao dịch liên quan được lưu dưới trạng thái hủy" });
+  return NextResponse.json({ message: "Đã xoá hẳn buổi và toàn bộ giao dịch liên quan" });
 }

@@ -57,20 +57,20 @@ export function QrCard({ amount, description, toUserId }: { amount: number; desc
   }, [amount, cacheKey, description, shouldLoad, toUserId]);
 
   return (
-    <div ref={containerRef} className="flex items-center gap-3 text-sm font-black text-muted-foreground">
+    <div ref={containerRef} className="flex w-full min-w-0 items-center gap-3 text-sm font-black text-muted-foreground sm:w-auto">
       {qr ? (
         <Image
           alt={`QR chuyển khoản ${formatCurrency(amount)}`}
-          className="h-[92px] w-[92px] rounded-xl bg-white object-cover"
+          className="h-20 w-20 shrink-0 rounded-xl bg-white object-cover sm:h-[92px] sm:w-[92px]"
           height={92}
           src={qr}
           unoptimized
           width={92}
         />
       ) : (
-        <div className="h-[92px] w-[92px] animate-pulse rounded-xl bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800" />
+        <div className="h-20 w-20 shrink-0 animate-pulse rounded-xl bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 sm:h-[92px] sm:w-[92px]" />
       )}
-      <span>{formatCurrency(amount)}</span>
+      <span className="min-w-0 truncate">{formatCurrency(amount)}</span>
     </div>
   );
 }

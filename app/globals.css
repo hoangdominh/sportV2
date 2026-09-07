@@ -33,7 +33,7 @@
   }
 
   body {
-    @apply bg-background text-foreground min-h-screen antialiased;
+    @apply bg-background text-foreground min-h-screen overflow-x-hidden antialiased;
     font-family: "Be Vietnam Pro", sans-serif;
     color-scheme: dark;
     background:
@@ -70,27 +70,27 @@
 }
 
 @layer components {
-  .app-shell { @apply relative z-10 mx-auto min-h-screen w-full max-w-[1220px] px-4 py-5 pb-16; }
+  .app-shell { @apply relative z-10 mx-auto min-h-screen w-full max-w-[1220px] px-3 py-3 pb-12 sm:px-4 sm:py-5 sm:pb-16; }
   .app-shell.narrow { @apply max-w-[860px]; }
   .dashboard-shell { @apply max-w-[1240px]; }
   .transactions-shell { @apply max-w-[1380px]; }
 
-  .topbar { @apply mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between; }
-  .topbar h1 { @apply font-display text-5xl font-black tracking-[-0.06em] sm:text-6xl; }
-  .topbar-actions, .hero-actions, .transaction-actions { @apply flex flex-wrap gap-2; }
+  .topbar { @apply mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between sm:gap-5; }
+  .topbar h1 { @apply font-display text-[clamp(2.15rem,11vw,3.75rem)] font-black leading-[0.95] tracking-[-0.06em]; }
+  .topbar-actions, .hero-actions, .transaction-actions { @apply flex w-full flex-wrap gap-2 sm:w-auto; }
   .eyebrow { @apply mb-3 text-xs font-black uppercase tracking-[0.18em] text-emerald-400; }
   .muted { @apply text-muted-foreground; }
   .page-intro { @apply mt-4 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base; }
 
   .panel, .brand-panel, .login-card, .metric-card, .dashboard-hero { @apply relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/40 backdrop-blur-2xl; }
-  .panel { @apply p-5; }
-  .panel-heading { @apply mb-4 flex items-start justify-between gap-4; }
+  .panel { @apply p-4 sm:p-5; }
+  .panel-heading { @apply mb-4 flex flex-col items-start justify-between gap-2 sm:flex-row sm:gap-4; }
   .panel-heading span { @apply text-sm font-black text-muted-foreground; }
-  .panel h2, .login-card h2 { @apply text-2xl font-black tracking-tight; }
+  .panel h2, .login-card h2 { @apply text-xl font-black tracking-tight sm:text-2xl; }
 
-  .primary-button { @apply inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-5 py-2.5 text-sm font-black text-primary-foreground shadow-lg transition hover:bg-primary/90; }
-  .ghost-button, .small-button { @apply inline-flex min-h-10 items-center justify-center rounded-full border border-border bg-white/5 px-4 py-2 text-sm font-black text-foreground transition hover:border-primary/30 hover:bg-primary/10 hover:text-primary; }
-  .danger-button { @apply inline-flex min-h-10 items-center justify-center rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-black text-red-400 transition hover:bg-red-500/15; }
+  .primary-button { @apply inline-flex min-h-11 w-full items-center justify-center rounded-full bg-primary px-5 py-2.5 text-center text-sm font-black text-primary-foreground shadow-lg transition hover:bg-primary/90 sm:w-auto; }
+  .ghost-button, .small-button { @apply inline-flex min-h-10 w-full items-center justify-center rounded-full border border-border bg-white/5 px-4 py-2 text-center text-sm font-black text-foreground transition hover:border-primary/30 hover:bg-primary/10 hover:text-primary sm:w-auto; }
+  .danger-button { @apply inline-flex min-h-10 w-full items-center justify-center rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-center text-sm font-black text-red-400 transition hover:bg-red-500/15 sm:w-auto; }
   .primary-button:disabled, .ghost-button:disabled, .small-button:disabled, .danger-button:disabled { @apply cursor-wait opacity-70; }
 
   label { @apply grid gap-2 text-sm font-black text-muted-foreground; }
@@ -99,40 +99,40 @@
   .form-error { @apply text-sm font-black text-red-400; }
   .form-success { @apply text-sm font-black text-emerald-400; }
 
-  .login-shell { @apply relative z-10 grid min-h-screen gap-6 p-4 lg:grid-cols-[1.05fr_0.95fr] lg:p-10; }
-  .brand-panel { @apply relative flex min-h-[45vh] flex-col justify-end overflow-hidden p-8 lg:min-h-[calc(100vh-5rem)] lg:p-16; }
+  .login-shell { @apply relative z-10 grid min-h-screen gap-4 p-3 sm:p-4 lg:grid-cols-[1.05fr_0.95fr] lg:gap-6 lg:p-10; }
+  .brand-panel { @apply relative flex min-h-[42vh] flex-col justify-end overflow-hidden p-5 sm:p-8 lg:min-h-[calc(100vh-5rem)] lg:p-16; }
   .brand-panel::before { content: ""; @apply absolute inset-0 z-[1] bg-gradient-to-t from-black/80 via-black/25 to-transparent; }
-  .brand-panel::after { content: "₫"; @apply absolute -right-4 -top-16 z-[2] font-display text-[18rem] font-black leading-none text-white/[0.03]; }
+  .brand-panel::after { content: "₫"; @apply absolute -right-4 -top-10 z-[2] font-display text-[10rem] font-black leading-none text-white/[0.03] sm:-top-16 sm:text-[18rem]; }
   .brand-panel-illustration { @apply pointer-events-none absolute inset-0 z-0; }
   .brand-panel-image { @apply object-cover; }
   .brand-panel-copy { @apply relative z-[3] max-w-2xl; }
-  .brand-panel h1 { @apply font-display text-6xl font-black tracking-[-0.07em] lg:text-8xl; }
+  .brand-panel h1 { @apply font-display text-[clamp(3rem,16vw,6rem)] font-black leading-[0.9] tracking-[-0.07em] lg:text-8xl; }
   .brand-panel-copy p:not(.eyebrow) { @apply text-muted-foreground leading-7; }
-  .login-card { @apply self-center p-6; }
+  .login-card { @apply self-center p-5 sm:p-6; }
 
   .hero-grid, .metric-strip { @apply mb-5 grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4; }
   .hero-grid { @apply lg:grid-cols-3; }
-  .metric-card { @apply flex min-h-36 flex-col justify-between p-5; }
+  .metric-card { @apply flex min-h-32 flex-col justify-between p-4 sm:min-h-36 sm:p-5; }
   .metric-card.accent { @apply border-transparent bg-gradient-to-br from-emerald-400 to-lime-300 text-slate-950 shadow-[0_18px_50px_-12px_rgba(16,185,129,0.55)]; }
   .metric-card span, .metric-card small { @apply font-black opacity-70; }
-  .metric-card strong { @apply block text-3xl font-black tracking-[-0.06em]; }
+  .metric-card strong { @apply block text-[clamp(1.65rem,8vw,1.875rem)] font-black tracking-[-0.06em]; }
 
-  .dashboard-hero { @apply relative mb-5 grid gap-5 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl shadow-black/40 backdrop-blur-2xl lg:grid-cols-[1.2fr_0.8fr] lg:p-10; }
+  .dashboard-hero { @apply relative mb-5 grid gap-5 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-2xl shadow-black/40 backdrop-blur-2xl sm:p-6 lg:grid-cols-[1.2fr_0.8fr] lg:p-10; }
   .dashboard-hero::before { content: ""; @apply pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-primary/20 blur-3xl; }
   .dashboard-hero-copy { @apply grid gap-3; }
-  .dashboard-hero-copy h1 { @apply font-display text-[32px] font-black leading-none tracking-[-0.06em]; }
+  .dashboard-hero-copy h1 { @apply font-display text-[clamp(2rem,11vw,3.75rem)] font-black leading-none tracking-[-0.06em]; }
   .dashboard-hero-copy p:not(.eyebrow) { @apply max-w-3xl text-muted-foreground leading-7; }
   .dashboard-summary-strip { @apply lg:grid-cols-3; }
   .dashboard-summary-strip .metric-card.accent { @apply border-orange-400/20 bg-gradient-to-br from-orange-400/95 to-amber-300 text-slate-950 shadow-[0_18px_50px_-12px_rgba(251,146,60,0.42)]; }
   .dashboard-list-note { @apply -mt-1 mb-3 text-xs font-bold text-muted-foreground; }
   .payment-panel .aggregate-list { @apply gap-0; }
-  .aggregate-row { @apply flex items-center gap-3 py-3; border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
+  .aggregate-row { @apply flex flex-col gap-3 py-3 sm:flex-row sm:items-center; border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
   .aggregate-row:last-child { border-bottom: 0; }
   .aggregate-person-avatar { @apply grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-sm font-black text-primary; }
   .aggregate-row-main { @apply min-w-0 flex-1; }
-  .aggregate-row-main p { @apply truncate text-sm font-bold; }
-  .aggregate-row-main a, .aggregate-row-main span { @apply mt-1 block truncate text-xs font-bold text-muted-foreground; }
-  .aggregate-row .aggregate-amount { @apply shrink-0 text-right text-sm font-black; }
+  .aggregate-row-main p { @apply text-sm font-bold sm:truncate; }
+  .aggregate-row-main a, .aggregate-row-main span { @apply mt-1 block text-xs font-bold text-muted-foreground sm:truncate; }
+  .aggregate-row .aggregate-amount { @apply shrink-0 text-left text-sm font-black sm:text-right; }
   .dashboard-side-stack .event-icon { @apply bg-primary/10 text-primary; }
 
   .content-grid, .dashboard-payment-grid, .transactions-layout { @apply grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.65fr)]; }
@@ -141,10 +141,10 @@
   .dashboard-side-stack, .event-list, .balance-list, .settlement-list, .user-list, .transaction-table, .aggregate-list, .signal-grid { @apply grid gap-3; }
 
   .event-row, .balance-row, .settlement-card, .user-row, .transaction-row, .aggregate-card, .participant-input { @apply rounded-xl border border-border bg-white/[0.04] p-4; }
-  .event-row, .balance-row, .aggregate-main, .settlement-main, .settlement-actions { @apply flex items-start justify-between gap-4; }
+  .event-row, .balance-row, .aggregate-main, .settlement-main, .settlement-actions { @apply flex flex-col items-start justify-between gap-3 sm:flex-row sm:gap-4; }
   .event-row span, .balance-row span, .user-row span, .transaction-row a, .transaction-row span { @apply text-sm font-bold text-muted-foreground; }
-  .event-icon { @apply grid h-11 w-11 place-items-center rounded-xl bg-emerald-500/10 font-black text-emerald-400; }
-  .row-main-link { @apply flex items-center gap-3; }
+  .event-icon { @apply grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-500/10 font-black text-emerald-400; }
+  .row-main-link { @apply flex min-w-0 items-center gap-3; }
   .row-action-stack { @apply grid justify-items-start gap-1; }
   .row-action-stack span { @apply text-xs font-bold text-red-400; }
 
@@ -156,7 +156,7 @@
   .negative { @apply text-red-400; }
   .empty-state { @apply text-sm leading-7 text-muted-foreground; }
 
-  .participant-input { @apply grid gap-4 md:grid-cols-[minmax(190px,0.8fr)_minmax(280px,1.2fr)]; }
+  .participant-input { @apply grid gap-4 md:grid-cols-[minmax(170px,0.8fr)_minmax(0,1.2fr)]; }
   .participant-money-grid, .bank-form { @apply grid gap-3 md:grid-cols-2; }
   .bank-section { @apply grid gap-4 border-t border-border pt-4; }
   .bank-form { @apply lg:grid-cols-4; }
@@ -168,4 +168,25 @@
   .void-note { @apply grid gap-1 rounded-lg border-l-[3px] border-muted-foreground/50 bg-white/[0.02] p-3 text-sm leading-6 text-muted-foreground; }
   .void-note strong { @apply text-foreground; }
   .void-note small { @apply text-xs font-black text-muted-foreground/70; }
+
+  @media (max-width: 640px) {
+    .hero-actions > *,
+    .topbar-actions > *,
+    .transaction-actions > *,
+    .user-action-row > * {
+      flex: 1 1 100%;
+    }
+
+    .settlement-card,
+    .balance-row,
+    .event-row,
+    .user-row {
+      min-width: 0;
+    }
+
+    .settlement-actions > *,
+    .aggregate-row > * {
+      max-width: 100%;
+    }
+  }
 }

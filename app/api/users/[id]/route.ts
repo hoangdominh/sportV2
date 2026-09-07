@@ -63,7 +63,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     }
   );
 
-  return NextResponse.json({ message: "Đã cập nhật thông tin user" });
+  return NextResponse.json({ message: "Đã cập nhật QR và vai trò user" });
 }
 
 export async function DELETE(_: Request, { params }: { params: { id: string } }) {

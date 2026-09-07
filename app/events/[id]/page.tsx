@@ -47,7 +47,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
           </Link>
           {session.user.role === "admin" ? (
             <DeleteResourceButton
-              confirmText={`Xoá buổi "${event.name}"? Chỉ có thể xoá khi chưa có khoản đã thanh toán; giao dịch liên quan sẽ được lưu dưới trạng thái hủy.`}
+              confirmText={`Xoá hẳn buổi "${event.name}"? Chỉ xoá được khi tất cả giao dịch đã thanh toán xong. Dữ liệu buổi và giao dịch liên quan sẽ bị xoá khỏi DB.`}
               endpoint={`/api/events/${event._id.toString()}`}
               redirectTo="/dashboard"
             />
