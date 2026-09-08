@@ -6,15 +6,15 @@ import { authOptions } from "@/lib/auth";
 import { deriveEventStatus } from "@/lib/event-status";
 import { getDb } from "@/lib/mongodb";
 import { formatCurrency } from "@/lib/settlement";
-import type { EventDoc, TransactionDoc, UserDoc } from "@/lib/types";
-import { DonutChart, MiniBarChart, ProgressBar } from "@/components/charts";
+import type { EventDoc, TransactionDoc } from "@/lib/types";
+import { ArrowRight, CheckCheck, Plus, AlertCircle } from "lucide-react";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
   const db = await getDb();
-  const [events, transactionStats, recentUnpaidTransactions, statusesByEventRows, userCount] = await Promise.all([
+  const [events, transactionStats, recentUnpaidTransactions, statusesByEventRows] = await Promise.all([
     db.collection<EventDoc>("events").find({}).sort({ date: -1 }).toArray(),
     db
       .collection<TransactionDoc>("transactions")
@@ -22,14 +22,13 @@ export default async function DashboardPage() {
         { $group: { _id: "$status", count: { $sum: 1 }, total: { $sum: "$amount" } } }
       ])
       .toArray(),
-    db.collection<TransactionDoc>("transactions").find({ status: "unpaid" }).sort({ createdAt: -1 }).limit(10).toArray(),
+    db.collection<TransactionDoc>("transactions").find({ status: "unpaid" }).sort({ createdAt: -1 }).limit(5).toArray(),
     db
       .collection<TransactionDoc>("transactions")
       .aggregate<{ _id: TransactionDoc["eventId"]; statuses: TransactionDoc["status"][] }>([
         { $group: { _id: "$eventId", statuses: { $push: "$status" } } }
       ])
-      .toArray(),
-    db.collection<UserDoc>("users").countDocuments()
+      .toArray()
   ]);
   const eventMap = new Map(events.map((event) => [event._id.toString(), event]));
   const statusesByEvent = new Map(statusesByEventRows.map((row) => [row._id.toString(), row.statuses]));
@@ -38,178 +37,109 @@ export default async function DashboardPage() {
   const getTransactionTotal = (status: TransactionDoc["status"]) => transactionSummary.get(status)?.total ?? 0;
   const getEventStatus = (event: EventDoc) => deriveEventStatus(statusesByEvent.get(event._id.toString()) ?? []);
   const unpaidCount = getTransactionCount("unpaid");
-  const paidCount = getTransactionCount("paid");
-  const voidCount = getTransactionCount("void");
-  const activeTransactionCount = unpaidCount + paidCount;
   const totalSpend = events.reduce((sum, event) => sum + event.totalAmount, 0);
   const openEvents = events.filter((event) => getEventStatus(event) === "open").length;
-  const reviewEvents = events.filter((event) => getEventStatus(event) === "needs_review").length;
+  const reviewEvents = events.filter((event) => getEventStatus(event) === "needs_review");
   const debtTotal = getTransactionTotal("unpaid");
-  const paidTotal = getTransactionTotal("paid");
-  const participantTurns = events.reduce((sum, event) => sum + event.participants.length, 0);
-  const settlementRate = activeTransactionCount > 0 ? Math.round((paidCount / activeTransactionCount) * 100) : 100;
-  const recentEvents = events.slice(0, 5);
-  const monthlySpend = (() => {
-    const map = new Map<string, number>();
-    for (const event of events) {
-      const d = new Date(event.date);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      map.set(key, (map.get(key) ?? 0) + event.totalAmount);
-    }
-    return Array.from(map.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .slice(-6)
-      .map(([k, v]) => ({ label: k.slice(2), value: v }));
-  })();
+  const recentEvents = events.slice(0, 4);
+  const dateFormatter = new Intl.DateTimeFormat("vi-VN", { day: "numeric", month: "numeric" });
 
   return (
-    <main className="app-shell dashboard-shell">
+    <main className="app-shell dashboard-shell overview">
       <AppNav role={session.user.role} userName={session.user.name} />
+      <header className="overview-heading">
+        <div>
+          <h1>Tổng quan</h1>
+          <p>Chào {session.user.name}, cùng xem các khoản chi của nhóm.</p>
+        </div>
+        {session.user.role === "admin" ? (
+          <Link className="overview-create" href="/events/new"><Plus size={18} aria-hidden="true" /> Tạo buổi mới</Link>
+        ) : null}
+      </header>
 
-      <section className="dashboard-hero compact-hero">
-        <div className="dashboard-hero-copy">
-          <p className="eyebrow">Tổng quan nhóm</p>
-          <h1>Cần thu {formatCurrency(debtTotal)}</h1>
-          <p>{unpaidCount} giao dịch còn lại · đã xác nhận {formatCurrency(paidTotal)}</p>
+      <section className="overview-balance" aria-labelledby="balance-heading">
+        <div className="overview-balance-main">
+          <h2 id="balance-heading">{events.length === 0 ? "Bắt đầu chia tiền cùng nhóm" : unpaidCount > 0 ? "Chưa thanh toán · Toàn nhóm" : "Đã thanh toán hết"}</h2>
+          {unpaidCount > 0 ? (
+            <>
+              <p className="overview-amount">{formatCurrency(debtTotal)}</p>
+              <p className="overview-balance-note">{unpaidCount} khoản đang chờ xác nhận · {openEvents} buổi còn mở</p>
+            </>
+          ) : (
+            <div className="overview-clear">
+              <CheckCheck size={32} aria-hidden="true" />
+              <p>{events.length === 0 ? "Buổi đầu tiên, mọi khoản chi đều rõ ràng." : "Gọn khoản nợ. Trọn cuộc vui."}</p>
+            </div>
+          )}
         </div>
-        <div className="hero-visual flex flex-col items-start gap-5 lg:items-end">
-          <div className="flex items-center gap-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-            <DonutChart
-              segments={[
-                { value: paidTotal, color: "rgb(52 211 153)", label: "Đã chuyển" },
-                { value: debtTotal, color: "rgb(251 146 60)", label: "Cần thu" }
-              ]}
-              centerValue={`${settlementRate}%`}
-              centerLabel="Xác nhận"
-            />
-          </div>
-          <div className="hero-actions">
-            {session.user.role === "admin" ? (
-              <Link className="primary-button" href="/events/new">
-                Tạo buổi mới
-              </Link>
-            ) : null}
-            <Link className="ghost-button" href="/transactions">
-              Xem tất cả giao dịch
-            </Link>
-          </div>
-        </div>
+        <Link className="overview-balance-action" href={unpaidCount > 0 ? "#pending-payments" : "/transactions"}>
+          {unpaidCount > 0 ? "Xem khoản cần xử lý" : "Xem giao dịch"}<ArrowRight size={18} aria-hidden="true" />
+        </Link>
       </section>
 
-      <section className="metric-strip dashboard-summary-strip">
-        <article className="metric-card">
-          <span>Tổng chi</span>
-          <strong>{formatCurrency(totalSpend)}</strong>
-          <small>{events.length} buổi / {participantTurns} lượt tham gia</small>
-          <ProgressBar value={totalSpend > 0 ? (paidTotal / totalSpend) * 100 : 0} />
-        </article>
-        <article className="metric-card">
-          <span>Buổi còn mở</span>
-          <strong>{openEvents}</strong>
-          <small>{reviewEvents > 0 ? `${reviewEvents} buổi cần kiểm tra giao dịch hủy` : "Admin cần xác nhận thanh toán"}</small>
-        </article>
-        <article className="metric-card accent">
-          <span>Cần xử lý</span>
-          <strong>{unpaidCount}</strong>
-          <small>khoản đang chờ xác nhận</small>
-        </article>
-      </section>
-
-      <section className="dashboard-payment-grid">
-        <div className="panel payment-panel">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">Cần thanh toán</p>
-              <h2>Giao dịch riêng theo từng buổi</h2>
+      {reviewEvents.length > 0 ? (
+        <section className="overview-review" aria-label="Buổi cần kiểm tra">
+          <AlertCircle size={19} aria-hidden="true" />
+          <div>
+            <h2>{reviewEvents.length} buổi cần kiểm tra giao dịch hủy</h2>
+            <div className="overview-review-links">
+              {reviewEvents.map((event) => <Link key={event._id.toString()} href={`/events/${event._id.toString()}`}>{event.name}<ArrowRight size={14} aria-hidden="true" /></Link>)}
             </div>
-            <span>{unpaidCount} khoản cần xử lý</span>
           </div>
-          <p className="dashboard-list-note">Thanh toán và xác nhận riêng tại trang giao dịch hoặc chi tiết buổi.</p>
-          <div className="aggregate-list">
-            {unpaidCount === 0 ? <p className="empty-state">Không còn khoản nào cần thanh toán.</p> : null}
-            {recentUnpaidTransactions.map((transaction) => {
-              const event = eventMap.get(transaction.eventId.toString());
-              return (
-                <article className="aggregate-row" key={transaction._id.toString()}>
-                  <div className="aggregate-person-avatar" aria-hidden="true">
-                    {transaction.fromName.trim().charAt(0).toUpperCase()}
-                  </div>
-                  <div className="aggregate-row-main">
-                    <p>
-                      <strong>{transaction.fromName}</strong> chuyển cho <strong>{transaction.toName}</strong>
-                    </p>
-                    {event ? (
-                      <Link href={`/events/${event._id.toString()}`}>
-                        {event.name} · {new Intl.DateTimeFormat("vi-VN", { day: "numeric", month: "numeric" }).format(event.date)}
-                      </Link>
-                    ) : (
-                      <span>Buổi đã xoá</span>
-                    )}
-                  </div>
-                  <strong className="aggregate-amount">{formatCurrency(transaction.amount)}</strong>
-                </article>
-              );
-            })}
-            {unpaidCount > 10 ? <Link className="ghost-button" href="/transactions">Xem thêm {unpaidCount - 10} giao dịch</Link> : null}
-          </div>
-        </div>
+        </section>
+      ) : null}
 
-        <aside className="dashboard-side-stack">
-          <div className="panel">
-            <div className="panel-heading">
-              <div>
-                <h2>Lịch sử buổi</h2>
-              </div>
-              <span>{recentEvents.length}/{events.length}</span>
+      <div className="overview-columns">
+        <section className="overview-section" id="pending-payments" aria-labelledby="pending-heading">
+          <header className="overview-section-heading">
+            <h2 id="pending-heading">Cần xử lý</h2>
+            <Link href="/transactions">Tất cả giao dịch <ArrowRight size={15} aria-hidden="true" /></Link>
+          </header>
+          {recentUnpaidTransactions.length === 0 ? (
+            <div className="overview-empty">
+              <CheckCheck size={28} aria-hidden="true" />
+              <h3>Không có khoản chờ thanh toán</h3>
+              <p>{reviewEvents.length > 0 ? "Bạn vẫn còn buổi cần kiểm tra ở phía trên." : "Các khoản cần xử lý sẽ xuất hiện tại đây."}</p>
             </div>
-            <div className="event-list compact-events">
-              {recentEvents.length === 0 ? <p className="empty-state">Chưa có buổi nào.</p> : null}
-              {recentEvents.map((event) => (
-                <article className="event-row compact-row" key={event._id.toString()}>
-                  <Link className="row-main-link" href={`/events/${event._id.toString()}`}>
-                    <div className="event-icon">{event.participants.length}</div>
-                    <div>
-                      <strong>{event.name}</strong>
-                      <span>{new Intl.DateTimeFormat("vi-VN").format(event.date)} · {formatCurrency(event.totalAmount)}</span>
+          ) : (
+            <div className="overview-payments">
+              {recentUnpaidTransactions.map((transaction) => {
+                const event = eventMap.get(transaction.eventId.toString());
+                return (
+                  <Link className="overview-payment" key={transaction._id.toString()} href={event ? `/events/${event._id.toString()}` : "/transactions"}>
+                    <span className="overview-avatar" aria-hidden="true">{transaction.fromName.trim().charAt(0).toUpperCase()}</span>
+                    <div className="overview-payment-copy">
+                      <h3>{transaction.fromName} <span>→</span> {transaction.toName}</h3>
+                      <p>{event ? `${event.name} · ${dateFormatter.format(event.date)}` : "Buổi đã xóa"}</p>
+                    </div>
+                    <div className="overview-payment-value">
+                      <strong>{formatCurrency(transaction.amount)}</strong>
+                      <span>Xem buổi <ArrowRight size={13} aria-hidden="true" /></span>
                     </div>
                   </Link>
-                  <b className={getEventStatus(event) === "settled" ? "status-paid" : getEventStatus(event) === "needs_review" ? "status-void" : "status-unpaid"}>
-                    {getEventStatus(event) === "settled" ? "Đã xong" : getEventStatus(event) === "needs_review" ? "Cần kiểm tra" : "Còn nợ"}
-                  </b>
-                </article>
-              ))}
+                );
+              })}
             </div>
-          </div>
+          )}
+          {unpaidCount > 5 ? <Link className="overview-more" href="/transactions">Xem thêm {unpaidCount - 5} khoản <ArrowRight size={16} aria-hidden="true" /></Link> : null}
+        </section>
 
-          <div className="panel signal-panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">Signals</p>
-                <h2>Tóm tắt</h2>
-              </div>
-            </div>
-            <div className="signal-grid">
-              <div><span>User</span><strong>{userCount}</strong><small>thành viên</small></div>
-              <div><span>Giao dịch</span><strong>{activeTransactionCount}</strong><small>{unpaidCount} chưa chuyển · {voidCount} đã hủy</small></div>
-              <div><span>Đã thanh toán</span><strong>{formatCurrency(paidTotal)}</strong><small>tiền đã xác nhận</small></div>
-            </div>
-          </div>
-          <div className="panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">Xu hướng</p>
-                <h2>Chi tiêu theo tháng</h2>
-              </div>
-              <span>{monthlySpend.length} tháng</span>
-            </div>
-            {monthlySpend.length === 0 ? (
-              <p className="empty-state">Chưa có dữ liệu chi tiêu.</p>
-            ) : (
-              <MiniBarChart color="rgb(14 165 233)" data={monthlySpend} />
-            )}
-          </div>
-        </aside>
-      </section>
+        <section className="overview-section overview-recent" aria-labelledby="recent-heading">
+          <header className="overview-section-heading"><h2 id="recent-heading">Buổi gần đây</h2><span>{recentEvents.length} buổi mới nhất</span></header>
+          {recentEvents.length === 0 ? <div className="overview-empty"><h3>Chưa có buổi nào</h3><p>{session.user.role === "admin" ? "Tạo buổi mới để bắt đầu ghi nhận khoản chi." : "Các buổi do admin tạo sẽ xuất hiện tại đây."}</p></div> : null}
+          {recentEvents.map((event) => {
+            const status = getEventStatus(event);
+            return (
+              <Link className="overview-event" key={event._id.toString()} href={`/events/${event._id.toString()}`}>
+                <div className="overview-event-title"><h3>{event.name}</h3><ArrowRight size={16} aria-hidden="true" /></div>
+                <p>{dateFormatter.format(event.date)} · {formatCurrency(event.totalAmount)}</p>
+                <span className={`overview-event-status ${status}`}>{status === "settled" ? "Hoàn tất" : status === "needs_review" ? "Cần kiểm tra" : "Còn nợ"}</span>
+              </Link>
+            );
+          })}
+        </section>
+      </div>
+      <footer className="overview-footnote">{events.length} buổi đã ghi nhận <span>·</span> Tổng chi {formatCurrency(totalSpend)}</footer>
     </main>
   );
 }

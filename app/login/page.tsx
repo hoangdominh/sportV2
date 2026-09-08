@@ -10,26 +10,26 @@ export default async function LoginPage() {
 
   return (
     <main className="login-shell">
-      <section className="brand-panel">
-        <div className="brand-panel-illustration" aria-hidden="true">
-          <Image
-            alt=""
-            className="brand-panel-image"
-            fill
-            priority
-            sizes="(min-width: 1024px) 55vw, 100vw"
-            src="/hinh_che_doi_no_kheo_18_a2facc4820.jpg"
-          />
-        </div>
-        <div className="brand-panel-copy">
-          <p className="eyebrow">SplitMates</p>
-          <h1>Trả tiền nhanhhh !!!!</h1>
-          <p>
-            Ghi nhận ai đã ứng tiền, tự động cân bằng nợ và tạo QR chuyển khoản cho từng giao dịch.
-          </p>
-        </div>
+      <div className="login-background" aria-hidden="true">
+        <Image
+          alt=""
+          className="login-background-image"
+          fill
+          priority
+          sizes="100vw"
+          src="/hinh_che_doi_no_kheo_18_a2facc4820.jpg"
+        />
+      </div>
+
+      <section className="login-hero-copy">
+        <p className="eyebrow">Chia tiền nhóm</p>
+        <h1>Chia tiền,<br />ngại nhắc.</h1>
+        <p>Gọn khoản chi. Rõ khoản nợ. Vui trọn cuộc chơi.</p>
       </section>
-      <LoginForm />
+
+      <section className="login-form-panel">
+        <LoginForm />
+      </section>
     </main>
   );
 }

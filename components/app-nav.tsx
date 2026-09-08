@@ -12,10 +12,6 @@ export function AppNav({ role, userName }: { role: "admin" | "member"; userName:
 
   return (
     <nav className="mb-5 flex flex-col gap-3 rounded-3xl border border-border bg-slate-900/80 px-2 py-2 shadow-lg backdrop-blur-xl sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:rounded-full">
-      {/* <Link className="flex items-center gap-2 px-3 py-1.5 font-black tracking-tight text-foreground" href="/dashboard">
-        <span className="grid h-8 w-8 place-items-center rounded-full bg-primary text-xs font-black text-primary-foreground">₫</span>
-        SplitMates
-      </Link> */}
       <div className="flex w-full items-center gap-1 overflow-x-auto pb-1 sm:w-auto sm:overflow-visible sm:pb-0">
         <Link
           aria-current={isActive("/dashboard") ? "page" : undefined}

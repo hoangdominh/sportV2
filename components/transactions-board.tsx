@@ -271,7 +271,7 @@ export function TransactionsBoard({
   };
 
   return (
-    <>
+    <div className="transactions-board-type">
       <Card className="mb-5 border-border bg-slate-900/60 backdrop-blur-xl">
         <CardContent className="p-5">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -279,7 +279,7 @@ export function TransactionsBoard({
               <label className="text-xs font-black text-muted-foreground">Người chuyển</label>
               <Select value={fromUserId} onValueChange={setFromUserId}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectContent className="transactions-select-type">
                   <SelectItem value="all">Tất cả</SelectItem>
                   {fromOptions.map((option) => <SelectItem key={option.id} value={option.id}>{option.name}</SelectItem>)}
                 </SelectContent>
@@ -289,7 +289,7 @@ export function TransactionsBoard({
               <label className="text-xs font-black text-muted-foreground">Người nhận</label>
               <Select value={toUserId} onValueChange={setToUserId}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectContent className="transactions-select-type">
                   <SelectItem value="all">Tất cả</SelectItem>
                   {toOptions.map((option) => <SelectItem key={option.id} value={option.id}>{option.name}</SelectItem>)}
                 </SelectContent>
@@ -299,7 +299,7 @@ export function TransactionsBoard({
               <label className="text-xs font-black text-muted-foreground">Buổi</label>
               <Select value={eventId} onValueChange={setEventId}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectContent className="transactions-select-type">
                   <SelectItem value="all">Tất cả</SelectItem>
                   {eventOptions.map((option) => <SelectItem key={option.id} value={option.id}>{option.name}</SelectItem>)}
                 </SelectContent>
@@ -309,7 +309,7 @@ export function TransactionsBoard({
               <label className="text-xs font-black text-muted-foreground">Trạng thái</label>
               <Select value={status} onValueChange={(v) => setStatus(v as TransactionStatus | "all")}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectContent className="transactions-select-type">
                   <SelectItem value="all">Tất cả</SelectItem>
                   <SelectItem value="unpaid">Chưa chuyển</SelectItem>
                   <SelectItem value="paid">Đã chuyển</SelectItem>
@@ -413,6 +413,6 @@ export function TransactionsBoard({
           );
         })}
       </section>
-    </>
+    </div>
   );
 }
