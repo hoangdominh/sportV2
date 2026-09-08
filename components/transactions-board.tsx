@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { MemberAvatar } from "@/components/app-nav";
 import { useEffect, useMemo, useState } from "react";
 import { QrCard } from "@/components/qr-card";
 import { ReopenTransactionButton } from "@/components/reopen-transaction-button";
@@ -214,10 +215,10 @@ export function TransactionsBoard({
             ) : (
               <span className="text-sm font-black text-blue-400">{transaction.eventName}</span>
             )}
-            <p className="flex items-center gap-2 text-sm">
-              <strong className="font-bold">{transaction.fromName}</strong>
+            <p className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="inline-flex min-w-0 items-center gap-2"><MemberAvatar name={transaction.fromName} /><strong className="break-words font-bold">{transaction.fromName}</strong></span>
               <span className="text-emerald-400">→</span>
-              <strong className="font-bold">{transaction.toName}</strong>
+              <span className="inline-flex min-w-0 items-center gap-2"><MemberAvatar name={transaction.toName} /><strong className="break-words font-bold">{transaction.toName}</strong></span>
             </p>
             <b className="text-xl font-black tracking-tight sm:text-2xl">{formatCurrency(transaction.amount)}</b>
           </div>
@@ -375,7 +376,7 @@ export function TransactionsBoard({
               <CardHeader className="border-b border-border p-5">
                 <div>
                   <p className="text-xs font-black uppercase tracking-widest text-emerald-400">Người chuyển</p>
-                  <h2 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">{group.fromName}</h2>
+                  <h2 className="mt-1 flex items-center gap-3 text-2xl font-black tracking-tight sm:text-3xl"><MemberAvatar name={group.fromName} />{group.fromName}</h2>
                 </div>
               </CardHeader>
               <CardContent className="space-y-5 p-5">
