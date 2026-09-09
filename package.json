@@ -12,7 +12,7 @@
     "lint": "node node_modules/next/dist/bin/next lint",
     "typecheck": "node node_modules/typescript/bin/tsc --noEmit",
     "seed": "node --env-file=.env --import tsx scripts/seed.ts",
-    "test": "node --import tsx scripts/test-settlement.ts",
+    "test": "node --import tsx scripts/test-settlement.ts && node --import tsx scripts/test-event-transactions.ts",
     "db:indexes": "node --env-file=.env --import tsx scripts/create-indexes.ts"
   },
   "dependencies": {

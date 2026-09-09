@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { AppNav } from "@/components/app-nav";
+import { ActivityIcon } from "@/components/activity-icon";
+import { MemberAvatar, ParticipantAvatars } from "@/components/member-avatar";
 import { authOptions } from "@/lib/auth";
 import { deriveEventStatus } from "@/lib/event-status";
 import { getDb } from "@/lib/mongodb";
@@ -46,7 +48,7 @@ export default async function DashboardPage() {
 
   return (
     <main className="app-shell dashboard-shell overview">
-      <AppNav role={session.user.role} userName={session.user.name} />
+      <AppNav role={session.user.role} userName={session.user.name} userId={session.user.id} />
       <header className="overview-heading">
         <div>
           <h1>Tổng quan</h1>
@@ -83,7 +85,7 @@ export default async function DashboardPage() {
           <div>
             <h2>{reviewEvents.length} buổi cần kiểm tra giao dịch hủy</h2>
             <div className="overview-review-links">
-              {reviewEvents.map((event) => <Link key={event._id.toString()} href={`/events/${event._id.toString()}`}>{event.name}<ArrowRight size={14} aria-hidden="true" /></Link>)}
+              {reviewEvents.map((event) => <Link key={event._id.toString()} href={`/events/${event._id.toString()}`}><ActivityIcon activityType={event.activityType} />{event.name}<ArrowRight size={14} aria-hidden="true" /></Link>)}
             </div>
           </div>
         </section>
@@ -107,10 +109,11 @@ export default async function DashboardPage() {
                 const event = eventMap.get(transaction.eventId.toString());
                 return (
                   <Link className="overview-payment" key={transaction._id.toString()} href={event ? `/events/${event._id.toString()}` : "/transactions"}>
-                    <span className="overview-avatar" aria-hidden="true">{transaction.fromName.trim().charAt(0).toUpperCase()}</span>
+                    <MemberAvatar userId={transaction.fromUserId.toString()} name={transaction.fromName} />
                     <div className="overview-payment-copy">
                       <h3>{transaction.fromName} <span>→</span> {transaction.toName}</h3>
-                      <p>{event ? `${event.name} · ${dateFormatter.format(event.date)}` : "Buổi đã xóa"}</p>
+                      <p><ActivityIcon activityType={event?.activityType} />{event ? `${event.name} · ${dateFormatter.format(event.date)}` : "Buổi đã xóa"}</p>
+                      {event ? <ParticipantAvatars participants={event.participants.map((participant) => ({ userId: participant.userId.toString(), name: participant.name }))} /> : null}
                     </div>
                     <div className="overview-payment-value">
                       <strong>{formatCurrency(transaction.amount)}</strong>
@@ -131,8 +134,9 @@ export default async function DashboardPage() {
             const status = getEventStatus(event);
             return (
               <Link className="overview-event" key={event._id.toString()} href={`/events/${event._id.toString()}`}>
-                <div className="overview-event-title"><h3>{event.name}</h3><ArrowRight size={16} aria-hidden="true" /></div>
+                <div className="overview-event-title"><h3><ActivityIcon activityType={event.activityType} />{event.name}</h3><ArrowRight size={16} aria-hidden="true" /></div>
                 <p>{dateFormatter.format(event.date)} · {formatCurrency(event.totalAmount)}</p>
+                <ParticipantAvatars participants={event.participants.map((participant) => ({ userId: participant.userId.toString(), name: participant.name }))} />
                 <span className={`overview-event-status ${status}`}>{status === "settled" ? "Hoàn tất" : status === "needs_review" ? "Cần kiểm tra" : "Còn nợ"}</span>
               </Link>
             );

@@ -1,4 +1,5 @@
 import type { ObjectId } from "mongodb";
+import type { ActivityType } from "./activity";
 
 export type Role = "admin" | "member";
 export type TransactionStatus = "unpaid" | "paid" | "void";
@@ -30,6 +31,7 @@ export interface ParticipantDoc {
 export interface EventDoc {
   _id: ObjectId;
   name: string;
+  activityType?: ActivityType;
   date: Date;
   participants: ParticipantDoc[];
   totalAmount: number;

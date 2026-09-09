@@ -11,7 +11,7 @@ export default async function NewEventPage() {
 
   return (
     <main className="app-shell narrow">
-      <AppNav role={session.user.role} userName={session.user.name} />
+      <AppNav role={session.user.role} userName={session.user.name} userId={session.user.id} />
       <NewEventForm />
     </main>
   );

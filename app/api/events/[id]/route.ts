@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import { NextResponse } from "next/server";
+import { getActivityType } from "@/lib/activity";
 import { deriveEventStatus } from "@/lib/event-status";
 import { getDb, getMongoClient } from "@/lib/mongodb";
 import { requireAdmin, requireSession } from "@/lib/permissions";
@@ -24,6 +25,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   return NextResponse.json({
     id: event._id.toString(),
     name: event.name,
+    activityType: getActivityType(event.activityType),
     date: event.date,
     totalAmount: event.totalAmount,
     perPersonAmount: event.perPersonAmount,

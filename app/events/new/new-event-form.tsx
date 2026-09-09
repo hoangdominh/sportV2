@@ -5,6 +5,8 @@ import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { DatePicker } from "@/components/date-picker";
+import { MemberAvatar } from "@/components/member-avatar";
+import { activityLabels, activityTypes } from "@/lib/activity";
 
 interface UserOption {
   id: string;
@@ -69,6 +71,7 @@ export function NewEventForm() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: formData.get("name"),
+        activityType: formData.get("activityType"),
         date: format(eventDate, "yyyy-MM-dd"),
         participants
       })
@@ -87,57 +90,73 @@ export function NewEventForm() {
   }
 
   return (
-    <>
+    <div className="new-event-view">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Admin</p>
-          <h1>Tạo buổi chia tiền</h1>
-          <span className="muted">Chỉ những người được chọn ở buổi này mới được đưa vào công thức chia đầu người.</span>
+          <h1>Tạo buổi mới</h1>
+          <p className="muted">Điền thông tin buổi và chọn những người cùng chia tiền.</p>
         </div>
         <Link className="ghost-button" href="/dashboard">
           Về dashboard
         </Link>
       </header>
       <form className="panel event-form" onSubmit={handleSubmit}>
+        <section className="event-details" aria-labelledby="event-details-title">
+          <h2 id="event-details-title">Thông tin buổi</h2>
+          <div className="event-details-fields">
         <label>
           Tên buổi
-          <input name="name" required />
+          <input name="name" placeholder="Ví dụ: Cầu lông tối thứ Sáu" required />
         </label>
         <label>
-          Ngày (YYYY-MM-DD)
+          Loại hoạt động
+          <select name="activityType" required defaultValue="">
+            <option value="" disabled>Chọn loại hoạt động</option>
+            {activityTypes.map((type) => <option key={type} value={type}>{activityLabels[type]}</option>)}
+          </select>
+        </label>
+        <label>
+          Ngày diễn ra
           <DatePicker date={eventDate} onChange={setEventDate} />
         </label>
+          </div>
+        </section>
 
         <div className="participants-editor">
           <div className="section-heading-inline">
             <div>
-              <h2>Người tham gia, tiền ứng và tiền kèo</h2>
+              <h2>Người tham gia</h2>
               <span>
                 {selectedCount}/{users.length} người được chọn · Tổng kèo {new Intl.NumberFormat("vi-VN").format(adjustmentTotal)} đ
               </span>
             </div>
             <button
               className="small-button"
-              onClick={() => setSelected(Object.fromEntries(users.map((user) => [user.id, true])))}
+              onClick={() => setSelected(Object.fromEntries(users.map((user) => [user.id, selectedCount !== users.length])))}
               type="button"
             >
-              Chọn tất cả
+              {users.length > 0 && selectedCount === users.length ? "Bỏ chọn tất cả" : "Chọn tất cả"}
             </button>
           </div>
+          <p className="event-help">Chỉ người được chọn mới chia tiền. Tiền kèo: người thua nhập âm, người thắng nhập dương; tổng phải bằng 0.</p>
+          <div className="event-participant-list">
           {users.map((user) => (
-            <div className="participant-input" key={user.id}>
+            <div className="participant-input" data-selected={Boolean(selected[user.id])} key={user.id}>
               <label className="check-line">
                 <input
                   checked={Boolean(selected[user.id])}
                   onChange={(event) => setSelected((current) => ({ ...current, [user.id]: event.target.checked }))}
                   type="checkbox"
                 />
+                <MemberAvatar userId={user.id} name={user.name} />
                 <span>{user.name}</span>
               </label>
               <div className="participant-money-grid">
                 <label className="amount-field">
-                  Đã ứng
+                  Đã ứng (₫)
                   <input
+                    aria-label={`Tiền đã ứng của ${user.name}`}
+                    placeholder="0"
                     inputMode="numeric"
                     min="0"
                     onChange={(event) => setPaidAmounts((current) => ({ ...current, [user.id]: event.target.value }))}
@@ -146,9 +165,10 @@ export function NewEventForm() {
                   />
                 </label>
                 <label className="amount-field">
-                  Kèo +/-
+                  Tiền kèo (+/− ₫)
                   <input
                     aria-label={`Tiền kèo của ${user.name}`}
+                    placeholder="0"
                     inputMode="numeric"
                     onChange={(event) => setAdjustmentAmounts((current) => ({ ...current, [user.id]: event.target.value }))}
                     type="number"
@@ -158,13 +178,16 @@ export function NewEventForm() {
               </div>
             </div>
           ))}
+          </div>
         </div>
 
-        {error ? <p className="form-error">{error}</p> : null}
+        <div className="event-form-footer">
+        {error ? <p className="form-error" role="alert">{error}</p> : null}
         <button className="primary-button" disabled={loading} type="submit">
-          {loading ? "Đang tính settlement…" : "Tạo và tính chia tiền"}
+          {loading ? "Đang tính chia tiền…" : "Tạo buổi và chia tiền"}
         </button>
+        </div>
       </form>
-    </>
+    </div>
   );
 }

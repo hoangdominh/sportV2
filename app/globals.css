@@ -4,6 +4,46 @@
 @tailwind components;
 @tailwind utilities;
 
+.new-event-view .topbar { align-items: flex-start; gap: 20px; margin: 28px 0; }
+.new-event-view .topbar h1 { font-family: "Be Vietnam Pro", sans-serif; font-size: clamp(26px, 4vw, 36px); font-weight: 700; line-height: 1.35; letter-spacing: -.045em; }
+.new-event-view .topbar .muted { margin-top: 8px; font-size: 13px; font-weight: 400; line-height: 1.8; color: #9aa7b3; }
+.new-event-view .event-form { padding: 28px; background: #111920; border-color: #29343d; border-radius: 18px; box-shadow: none; backdrop-filter: none; }
+.new-event-view h2 { font-size: 17px; font-weight: 600; line-height: 1.5; letter-spacing: -.03em; }
+.new-event-view .event-details-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 20px; margin-top: 22px; }
+.new-event-view .event-details-fields > label:first-child { grid-column: 1 / -1; }
+.new-event-view label { font-size: 12px; font-weight: 600; line-height: 1.6; color: #b7c3cc; gap: 8px; }
+.new-event-view input:not([type="checkbox"]), .new-event-view select { height: 46px; font-size: 14px; font-weight: 500; background: #0b1218; border: 1px solid #303d47; border-radius: 10px; }
+.new-event-view input::placeholder { color: #71818e; font-weight: 400; }
+.new-event-view .event-details-fields button { min-height: 46px; font-size: 14px; font-weight: 500; border-radius: 10px; }
+.new-event-view .participants-editor { border-top: 1px solid #29343d; margin-top: 30px; padding-top: 26px; }
+.new-event-view .section-heading-inline { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.new-event-view .section-heading-inline > div > span { display: block; margin-top: 6px; font-size: 12px; line-height: 1.7; color: #9aa7b3; }
+.new-event-view .event-help { margin: 14px 0 20px; font-size: 12px; line-height: 1.8; color: #9aa7b3; max-width: 600px; }
+.new-event-view .event-participant-list { display: grid; gap: 10px; }
+.new-event-view .participant-input { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); align-items: center; gap: 18px; padding: 16px; background: #141e26; border: 1px solid #2a363f; border-radius: 12px; }
+.new-event-view .participant-input[data-selected="true"] { border-color: #507970; background: #162723; }
+.new-event-view .check-line { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; font-size: 13px; color: #e0e8ed; }
+.new-event-view .check-line > input { width: 18px; height: 18px; flex-shrink: 0; }
+.new-event-view .check-line > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.new-event-view .participant-money-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.new-event-view .amount-field { min-width: 0; font-size: 11px; font-weight: 500; }
+.new-event-view .amount-field input { text-align: right; font-variant-numeric: tabular-nums; }
+.new-event-view .small-button, .new-event-view .ghost-button { min-height: 44px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.new-event-view .event-form-footer { display: flex; flex-direction: column; align-items: flex-end; gap: 16px; border-top: 1px solid #29343d; margin-top: 26px; padding-top: 22px; }
+.new-event-view .event-form-footer .primary-button { min-height: 48px; font-size: 13px; font-weight: 600; padding: 12px 22px; border-radius: 12px; background: #c3e9e4; color: #142c30; box-shadow: none; }
+.new-event-view .event-form-footer .primary-button:hover { background: #d7f1ee; }
+.new-event-view .form-error { font-size: 13px; font-weight: 500; }
+.new-event-view :is(button, a, input, select):focus-visible { outline: 2px solid #c3e9e4; outline-offset: 3px; }
+@media (max-width: 639px) {
+  .new-event-view .event-form { padding: 18px 14px; }
+  .new-event-view .event-details-fields { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .new-event-view .participant-input { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 14px; }
+  .new-event-view .section-heading-inline { align-items: flex-start; flex-wrap: wrap; }
+  .new-event-view .section-heading-inline .small-button { width: auto; }
+  .new-event-view input:not([type="checkbox"]), .new-event-view select { font-size: 16px; }
+  .new-event-view .event-form-footer .primary-button { width: 100%; }
+}
+
 /* Match dashboard type roles without changing navigation or shared controls. */
 .transactions-shell .transactions-topbar h1 {
   font-family: "Be Vietnam Pro", sans-serif;

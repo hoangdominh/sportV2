@@ -10,6 +10,11 @@ async function main() {
   await Promise.all([
     db.collection("transactions").createIndex({ createdAt: -1 }, { name: "transactions_createdAt_desc" }),
     db.collection("transactions").createIndex({ status: 1, createdAt: -1 }, { name: "transactions_status_createdAt" }),
+    db.collection("transactions").createIndex({ createdAt: -1, _id: -1 }, { name: "transactions_page_order" }),
+    db.collection("transactions").createIndex({ status: 1, createdAt: -1, _id: -1 }, { name: "transactions_status_page_order" }),
+    db.collection("transactions").createIndex({ fromUserId: 1, status: 1, createdAt: -1, _id: -1 }, { name: "transactions_from_page_order" }),
+    db.collection("transactions").createIndex({ toUserId: 1, status: 1, createdAt: -1, _id: -1 }, { name: "transactions_to_page_order" }),
+    db.collection("transactions").createIndex({ eventId: 1, status: 1, createdAt: -1, _id: -1 }, { name: "transactions_event_page_order" }),
     db.collection("transactions").createIndex({ eventId: 1, status: 1 }, { name: "transactions_eventId_status" }),
     db.collection("events").createIndex({ date: -1 }, { name: "events_date_desc" }),
     db.collection("users").createIndex({ username: 1 }, { name: "users_username_unique", unique: true })

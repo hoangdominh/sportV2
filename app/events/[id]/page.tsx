@@ -34,7 +34,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
 
   return (
     <main className="app-shell">
-      <AppNav role={session.user.role} userName={session.user.name} />
+      <AppNav role={session.user.role} userName={session.user.name} userId={session.user.id} />
       <header className="topbar">
         <div>
           <p className="eyebrow">Chi tiết buổi</p>

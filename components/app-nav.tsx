@@ -2,18 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UserRound } from "lucide-react";
+import { MemberAvatar } from "./member-avatar";
 import { LogoutButton } from "./logout-button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-export function MemberAvatar({ name }: { name: string }) {
-  const colors = ["bg-teal-400/15 text-teal-200", "bg-sky-400/15 text-sky-200", "bg-violet-400/15 text-violet-200", "bg-amber-400/15 text-amber-200"];
-  const index = Array.from(name.normalize("NFC")).reduce((hash, character) => (hash * 31 + character.charCodeAt(0)) >>> 0, 0) % colors.length;
-  return <span aria-hidden="true" className={cn("inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ring-1 ring-inset ring-white/10", colors[index])}><UserRound size={16} strokeWidth={1.7} /></span>;
-}
-
-export function AppNav({ role, userName }: { role: "admin" | "member"; userName: string }) {
+export function AppNav({ role, userName, userId }: { role: "admin" | "member"; userName: string; userId: string }) {
   const pathname = usePathname();
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
@@ -63,7 +57,7 @@ export function AppNav({ role, userName }: { role: "admin" | "member"; userName:
         ) : null}
       </div>
       <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:flex-nowrap sm:justify-end">
-        <span className="flex min-w-0 items-center gap-2 text-sm font-black text-foreground"><MemberAvatar name={userName} /><span className="truncate">{userName}</span></span>
+        <span className="flex min-w-0 items-center gap-2 text-sm font-black text-foreground"><MemberAvatar userId={userId} name={userName} /><span className="truncate">{userName}</span></span>
         <Badge variant="secondary" className="rounded-full bg-emerald-500/10 text-emerald-400 border-0 text-xs">
           {role}
         </Badge>

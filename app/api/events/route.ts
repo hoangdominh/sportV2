@@ -1,4 +1,5 @@
 import { ObjectId } from "mongodb";
+import { getActivityType, isActivityType } from "@/lib/activity";
 import { NextResponse } from "next/server";
 import { deriveEventStatus } from "@/lib/event-status";
 import { getDb, getMongoClient } from "@/lib/mongodb";
@@ -8,6 +9,7 @@ import type { EventDoc, TransactionDoc, TransactionStatus, UserDoc } from "@/lib
 
 interface CreateEventPayload {
   name: string;
+  activityType?: unknown;
   date: string;
   participants: Array<{ userId: string; paidAmount: number; adjustmentAmount?: number }>; 
 }
@@ -30,6 +32,7 @@ export async function GET() {
     events.map((event) => ({
       id: event._id.toString(),
       name: event.name,
+      activityType: getActivityType(event.activityType),
       date: event.date,
       totalAmount: event.totalAmount,
       perPersonAmount: event.perPersonAmount,
@@ -41,10 +44,18 @@ export async function GET() {
 
 export async function POST(request: Request) {
   await requireAdmin();
-  const payload = (await request.json()) as CreateEventPayload;
+  const payload = (await request.json().catch(() => null)) as CreateEventPayload | null;
 
-  if (!payload.name?.trim() || !payload.date || !payload.participants?.length) {
+  if (!payload || (payload.activityType !== undefined && !isActivityType(payload.activityType))) {
+    return NextResponse.json({ message: "Chọn loại hoạt động hợp lệ" }, { status: 400 });
+  }
+
+  if (typeof payload.name !== "string" || !payload.name.trim() || typeof payload.date !== "string" || !payload.date || !Array.isArray(payload.participants) || !payload.participants.length) {
     return NextResponse.json({ message: "Thiếu tên buổi, ngày hoặc người tham gia" }, { status: 400 });
+  }
+
+  if (!Number.isFinite(new Date(payload.date).getTime())) {
+    return NextResponse.json({ message: "Ngày của buổi không hợp lệ" }, { status: 400 });
   }
 
   if (payload.participants.length < 2) {
@@ -97,6 +108,7 @@ export async function POST(request: Request) {
   const now = new Date();
   const eventDoc: Omit<EventDoc, "_id"> = {
     name: payload.name.trim(),
+    activityType: getActivityType(payload.activityType),
     date: new Date(payload.date),
     participants: settlement.participants.map((participant) => ({
       userId: new ObjectId(participant.userId),
