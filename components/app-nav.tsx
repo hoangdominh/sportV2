@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { LoaderCircle, UserRound } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { UserRound } from "lucide-react";
 import { LogoutButton } from "./logout-button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -16,23 +15,10 @@ export function MemberAvatar({ name }: { name: string }) {
 
 export function AppNav({ role, userName }: { role: "admin" | "member"; userName: string }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [pendingHref, setPendingHref] = useState<string | null>(null);
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <nav aria-label="Điều hướng chính" onClickCapture={(event) => {
-      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      if (!(event.target instanceof Element)) return;
-      const link = event.target.closest("a");
-      if (!link || link.target === "_blank" || link.hasAttribute("download")) return;
-      const href = link.getAttribute("href");
-      if (!href || !["/dashboard", "/transactions", "/users"].includes(href) || pathname === href) return;
-      event.preventDefault();
-      setPendingHref(href);
-      startTransition(() => router.push(href));
-    }} className="mb-5 flex flex-col gap-3 rounded-3xl border border-border bg-slate-900/80 px-2 py-2 shadow-lg backdrop-blur-xl sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:rounded-full">
+    <nav aria-label="Điều hướng chính" className="mb-5 flex flex-col gap-3 rounded-3xl border border-border bg-slate-900/80 px-2 py-2 shadow-lg backdrop-blur-xl sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:rounded-full">
       <div className="flex w-full items-center gap-1 overflow-x-auto pb-1 sm:w-auto sm:overflow-visible sm:pb-0">
         <Link
           aria-current={isActive("/dashboard") ? "page" : undefined}
@@ -43,8 +29,9 @@ export function AppNav({ role, userName }: { role: "admin" | "member"; userName:
               : "text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-400"
           )}
           href="/dashboard"
+          prefetch={true}
         >
-          {isPending && pendingHref === "/dashboard" ? "Đang mở…" : "Dashboard"}
+          Dashboard
         </Link>
         <Link
           aria-current={isActive("/transactions") ? "page" : undefined}
@@ -55,8 +42,9 @@ export function AppNav({ role, userName }: { role: "admin" | "member"; userName:
               : "text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-400"
           )}
           href="/transactions"
+          prefetch={true}
         >
-          {isPending && pendingHref === "/transactions" ? "Đang mở…" : "Giao dịch"}
+          Giao dịch
         </Link>
         {role === "admin" ? (
           <Link
@@ -68,12 +56,12 @@ export function AppNav({ role, userName }: { role: "admin" | "member"; userName:
                 : "text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-400"
             )}
             href="/users"
+            prefetch={true}
           >
-            {isPending && pendingHref === "/users" ? "Đang mở…" : "User"}
+            User
           </Link>
         ) : null}
       </div>
-      <span role="status" className={isPending ? "inline-flex items-center gap-2 px-2 text-xs text-emerald-200" : "sr-only"}>{isPending ? <><LoaderCircle size={14} aria-hidden="true" className="animate-spin motion-reduce:animate-none" />Đang mở trang…</> : ""}</span>
       <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:flex-nowrap sm:justify-end">
         <span className="flex min-w-0 items-center gap-2 text-sm font-black text-foreground"><MemberAvatar name={userName} /><span className="truncate">{userName}</span></span>
         <Badge variant="secondary" className="rounded-full bg-emerald-500/10 text-emerald-400 border-0 text-xs">
