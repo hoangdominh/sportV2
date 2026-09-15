@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { MemberAvatar, ParticipantAvatars, type AvatarParticipant } from "@/components/member-avatar";
+import { MemberAvatar } from "@/components/member-avatar";
 import { ActivityIcon } from "@/components/activity-icon";
 import { useMemo, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { ActivityType } from "@/lib/activity";
-import { transactionsHref, TRANSACTIONS_PAGE_SIZE, type TransactionFilters, type TransactionFilterOptions, type TransactionCounts } from "@/lib/transaction-filters";
+import { groupTransactionsByPayer, transactionsHref, TRANSACTION_PAYERS_PAGE_SIZE, type TransactionFilters, type TransactionFilterOptions, type TransactionCounts } from "@/lib/transaction-filters";
 import { QrCard } from "@/components/qr-card";
 import { ReopenTransactionButton } from "@/components/reopen-transaction-button";
 import { TransactionStatusButton } from "@/components/transaction-status-button";
@@ -33,7 +33,6 @@ export interface TransactionBoardItem {
   eventDate: string | null;
   eventExists: boolean;
   activityType: ActivityType;
-  participants: AvatarParticipant[];
   fromUserId: string;
   fromName: string;
   toUserId: string;
@@ -77,7 +76,8 @@ export function TransactionsBoard({
   filters,
   options,
   counts,
-  total
+  totalTransactions,
+  totalPayers
 }: {
   transactions: TransactionBoardItem[];
   isAdmin: boolean;
@@ -85,27 +85,20 @@ export function TransactionsBoard({
   filters: TransactionFilters;
   options: TransactionFilterOptions;
   counts: TransactionCounts;
-  total: number;
+  totalTransactions: number;
+  totalPayers: number;
   totalAmount: number;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const pageCount = Math.max(1, Math.ceil(total / TRANSACTIONS_PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(totalPayers / TRANSACTION_PAYERS_PAGE_SIZE));
   const changeFilter = (key: "from" | "to" | "event" | "status", value: string) => {
     if (key === "status" && !["all", "unpaid", "paid", "void"].includes(value)) return;
     startTransition(() => router.push(transactionsHref({ ...filters, [key]: value, page: 1 })));
   };
   const refreshTransactions = () => startTransition(() => router.refresh());
 
-  const groups = useMemo(() => {
-    const grouped = new Map<string, { fromUserId: string; fromName: string; items: TransactionBoardItem[] }>();
-    for (const transaction of transactions) {
-      const current = grouped.get(transaction.fromUserId);
-      if (current) current.items.push(transaction);
-      else grouped.set(transaction.fromUserId, { fromUserId: transaction.fromUserId, fromName: transaction.fromName, items: [transaction] });
-    }
-    return [...grouped.values()].sort((a, b) => a.fromName.localeCompare(b.fromName, "vi") || a.fromUserId.localeCompare(b.fromUserId));
-  }, [transactions]);
+  const groups = useMemo(() => groupTransactionsByPayer(transactions), [transactions]);
 
   const renderTransactionCard = (transaction: TransactionBoardItem) => {
     const description = `${transferPrefix} ${transaction.eventName} ${transaction.fromName}`;
@@ -116,7 +109,7 @@ export function TransactionsBoard({
     return (
       <Card
         className={cn(
-          "border-border bg-white/[0.03] transition-all",
+          "min-w-0 snap-start break-words border-border bg-white/[0.03] transition-all",
           transaction.status === "unpaid" && "border-orange-400/25 bg-orange-500/[0.035] shadow-[0_18px_50px_-28px_rgba(251,146,60,0.65)]",
           transaction.status === "paid" && "border-emerald-400/15 bg-emerald-500/[0.025] opacity-70 hover:opacity-100",
           transaction.status === "void" && "bg-white/[0.015] opacity-60"
@@ -139,7 +132,6 @@ export function TransactionsBoard({
             ) : (
               <span className="text-sm font-black text-blue-400"><ActivityIcon activityType={transaction.activityType} />{transaction.eventName}</span>
             )}
-            <ParticipantAvatars participants={transaction.participants} />
             <p className="flex flex-wrap items-center gap-2 text-sm">
               <span className="inline-flex min-w-0 items-center gap-2"><MemberAvatar userId={transaction.fromUserId} name={transaction.fromName} /><strong className="break-words font-bold">{transaction.fromName}</strong></span>
               <span className="text-emerald-400">→</span>
@@ -197,7 +189,7 @@ export function TransactionsBoard({
   };
 
   return (
-    <div className="transactions-board-type" aria-busy={isPending}>
+    <div className="transactions-board-type min-w-0 max-w-full" aria-busy={isPending}>
       <Card className="mb-5 border-border bg-slate-900/60 backdrop-blur-xl">
         <CardContent className="p-5">
           <fieldset disabled={isPending} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -264,10 +256,17 @@ export function TransactionsBoard({
         {groups.map((group) => (
           <Card className="overflow-hidden border-border bg-slate-900/70 shadow-xl backdrop-blur-xl" key={group.fromUserId}>
             <CardHeader className="border-b border-border p-5">
-              <p className="text-xs font-black uppercase tracking-widest text-emerald-400">Người chuyển · {group.items.length} khoản trên trang này</p>
-              <h2 className="mt-1 flex items-center gap-3 text-2xl font-black tracking-tight sm:text-3xl"><MemberAvatar userId={group.fromUserId} name={group.fromName} />{group.fromName}</h2>
+              <p className="text-xs font-black uppercase tracking-widest text-emerald-400">Người chuyển · {group.items.length} giao dịch phù hợp bộ lọc</p>
+              <h2 id={`payer-${group.fromUserId}`} className="mt-1 flex items-center gap-3 break-words text-2xl font-black tracking-tight sm:text-3xl"><MemberAvatar userId={group.fromUserId} name={group.fromName} />{group.fromName}</h2>
+              <p id={`payer-scroll-${group.fromUserId}`} className="hidden text-xs text-muted-foreground sm:block">Các giao dịch của người này nằm cùng một hàng trên màn hình rộng; cuộn ngang để xem thêm nếu cần.</p>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-4 p-5 lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+            <CardContent
+              role="region"
+              aria-labelledby={`payer-${group.fromUserId}`}
+              aria-describedby={`payer-scroll-${group.fromUserId}`}
+              tabIndex={0}
+              className="grid min-w-0 max-w-full grid-cols-[minmax(0,1fr)] items-start gap-4 p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-300 sm:grid-cols-none sm:grid-flow-col sm:auto-cols-[calc((100%-1rem)/2)] sm:overflow-x-auto sm:overscroll-x-contain sm:scroll-p-5 sm:snap-x sm:snap-proximity sm:p-5 lg:auto-cols-[calc((100%-2rem)/3)]"
+            >
               {group.items.map(renderTransactionCard)}
             </CardContent>
           </Card>
@@ -275,7 +274,7 @@ export function TransactionsBoard({
       </fieldset>
       <nav aria-label="Phân trang giao dịch" className="mt-6 grid grid-cols-2 items-center gap-3 rounded-2xl border border-emerald-300/20 bg-slate-900 p-4 sm:grid-cols-[auto_1fr_auto] sm:p-5">
         <button type="button" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-emerald-300/50 bg-emerald-300/15 px-5 text-emerald-100 transition-colors enabled:hover:bg-emerald-300/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-500 motion-reduce:transition-none" disabled={isPending || filters.page <= 1} onClick={() => startTransition(() => router.push(transactionsHref({ ...filters, page: filters.page - 1 })))}><ArrowLeft size={18} aria-hidden="true" />Trang trước</button>
-        <span className="col-span-2 row-start-1 text-center text-sm text-slate-300 sm:col-span-1 sm:col-start-2 sm:row-start-auto">Trang <strong className="text-emerald-200">{filters.page}</strong> / {pageCount}<span className="mt-1 block text-xs text-slate-400">{TRANSACTIONS_PAGE_SIZE} giao dịch mỗi trang</span></span>
+        <span className="col-span-2 row-start-1 text-center text-sm text-slate-300 sm:col-span-1 sm:col-start-2 sm:row-start-auto">Trang <strong className="text-emerald-200">{filters.page}</strong> / {pageCount}<span className="mt-1 block text-xs text-slate-400">{TRANSACTION_PAYERS_PAGE_SIZE} người/trang · {totalPayers} người · {totalTransactions} giao dịch</span></span>
         <button type="button" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-emerald-300 px-5 text-slate-950 transition-colors enabled:hover:bg-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-500 motion-reduce:transition-none" disabled={isPending || filters.page >= pageCount} onClick={() => startTransition(() => router.push(transactionsHref({ ...filters, page: filters.page + 1 })))}>Trang sau<ArrowRight size={18} aria-hidden="true" /></button>
       </nav>
     </div>

@@ -8,7 +8,7 @@ import { authOptions } from "@/lib/auth";
 import { getDb } from "@/lib/mongodb";
 import type { EventDoc, TransactionDoc } from "@/lib/types";
 import { getActivityType } from "@/lib/activity";
-import { boundTransactionPage, parseTransactionFilters, transactionsHref, TRANSACTIONS_PAGE_SIZE, type TransactionSearchParams, type TransactionCounts, type TransactionFilterOptions } from "@/lib/transaction-filters";
+import { paginateTransactionPayers, parseTransactionFilters, transactionsHref, type TransactionSearchParams, type TransactionCounts, type TransactionFilterOptions } from "@/lib/transaction-filters";
 
 export default async function TransactionsPage({ searchParams }: { searchParams: TransactionSearchParams }) {
   const session = await getServerSession(authOptions);
@@ -21,10 +21,11 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
   if (filters.from !== "all") match.fromUserId = new ObjectId(filters.from);
   if (filters.to !== "all") match.toUserId = new ObjectId(filters.to);
   if (filters.event !== "all") match.eventId = new ObjectId(filters.event);
+  const transactionMatch: Filter<TransactionDoc> = { ...match, ...(filters.status === "all" ? {} : { status: filters.status }) };
 
   // Counts cover all matching obligations, not just the current page. Status
   // shortcuts share the same from/to/event scope and never intersect each other.
-  const [stats, fromRows, toRows, eventRows] = await Promise.all([
+  const [stats, fromRows, toRows, eventRows, payerRows] = await Promise.all([
     collection.aggregate<{ _id: TransactionDoc["status"]; count: number; amount: number }>([
       { $match: match },
       { $group: { _id: "$status", count: { $sum: 1 }, amount: { $sum: "$amount" } } }
@@ -39,7 +40,12 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
       { $group: { _id: "$eventId" } },
       { $lookup: { from: "events", localField: "_id", foreignField: "_id", as: "event" } },
       { $project: { name: { $arrayElemAt: ["$event.name", 0] } } }
-    ]).toArray()
+    ]).toArray(),
+    collection.aggregate<{ _id: ObjectId; name: string }>([
+      { $match: transactionMatch },
+      { $group: { _id: "$fromUserId", name: { $min: "$fromName" } } },
+      { $sort: { name: 1, _id: 1 } }
+    ], { collation: { locale: "vi" } }).toArray()
   ]);
   const counts: TransactionCounts = { unpaid: 0, paid: 0, void: 0 };
   let totalAmount = 0;
@@ -47,8 +53,9 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
     counts[row._id] = row.count;
     if (filters.status === "all" || filters.status === row._id) totalAmount += row.amount;
   }
-  const total = filters.status === "all" ? counts.unpaid + counts.paid + counts.void : counts[filters.status];
-  filters.page = boundTransactionPage(filters.page, total);
+  const totalTransactions = filters.status === "all" ? counts.unpaid + counts.paid + counts.void : counts[filters.status];
+  const { page, totalPayers, payers } = paginateTransactionPayers(payerRows, filters.page);
+  filters.page = page;
   const canonicalHref = transactionsHref(filters);
   const suppliedParams = new URLSearchParams();
   for (const [key, value] of Object.entries(searchParams)) {
@@ -71,8 +78,12 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
     }
     options[key].sort((a, b) => a.name.localeCompare(b.name, "vi") || a.id.localeCompare(b.id));
   }
-  const transactions = await collection.find({ ...match, ...(filters.status === "all" ? {} : { status: filters.status }) })
-    .sort({ createdAt: -1, _id: -1 }).skip((filters.page - 1) * TRANSACTIONS_PAGE_SIZE).limit(TRANSACTIONS_PAGE_SIZE).toArray();
+  const transactions = payers.length > 0 ? await collection.find({ ...transactionMatch, fromUserId: { $in: payers.map((payer) => payer._id) } })
+    .sort({ createdAt: -1, _id: -1 }).toArray() : [];
+  const payerOrder = new Map(payers.map((payer, index) => [payer._id.toString(), index]));
+  // Stable sort retains createdAt + ID order within each payer, while preserving
+  // the database's name + ID ordering between payers (including renamed users).
+  transactions.sort((a, b) => payerOrder.get(a.fromUserId.toString())! - payerOrder.get(b.fromUserId.toString())!);
   const eventIds = [...new Set(transactions.map((transaction) => transaction.eventId.toString()))].map((id) => new ObjectId(id));
   const events = eventIds.length > 0 ? await db.collection<EventDoc>("events").find({ _id: { $in: eventIds } }).toArray() : [];
   const eventMap = new Map(events.map((event) => [event._id.toString(), event]));
@@ -85,7 +96,6 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
       eventDate: event?.date.toISOString() ?? null,
       eventExists: Boolean(event),
       activityType: getActivityType(event?.activityType),
-      participants: event?.participants.map((participant) => ({ userId: participant.userId.toString(), name: participant.name })) ?? [],
       fromUserId: transaction.fromUserId.toString(),
       fromName: transaction.fromName,
       toUserId: transaction.toUserId.toString(),
@@ -123,7 +133,8 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
         filters={filters}
         options={options}
         counts={counts}
-        total={total}
+        totalTransactions={totalTransactions}
+        totalPayers={totalPayers}
         totalAmount={totalAmount}
         transferPrefix={process.env.TRANSFER_PREFIX ?? "CHIA TIEN"}
       />

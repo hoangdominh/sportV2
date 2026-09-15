@@ -1,6 +1,6 @@
 import type { TransactionStatus } from "./types";
 
-export const TRANSACTIONS_PAGE_SIZE = 5;
+export const TRANSACTION_PAYERS_PAGE_SIZE = 5;
 export type TransactionSearchParams = Record<string, string | string[] | undefined>;
 export interface TransactionFilters {
   from: string;
@@ -29,8 +29,28 @@ export function parseTransactionFilters(params: TransactionSearchParams): Transa
   };
 }
 
-export function boundTransactionPage(page: number, total: number) {
-  return Math.max(1, Math.min(page, Math.ceil(total / TRANSACTIONS_PAGE_SIZE)));
+export function boundTransactionPayerPage(page: number, totalPayers: number) {
+  return Math.max(1, Math.min(page, Math.ceil(totalPayers / TRANSACTION_PAYERS_PAGE_SIZE)));
+}
+
+// Input is already grouped and stably sorted by payer name + ID by the database.
+// Slice payers, never transactions: every obligation for a selected payer belongs
+// on the same page, regardless of how many obligations that payer has.
+export function paginateTransactionPayers<T>(sortedPayers: readonly T[], requestedPage: number) {
+  const totalPayers = sortedPayers.length;
+  const page = boundTransactionPayerPage(requestedPage, totalPayers);
+  const offset = (page - 1) * TRANSACTION_PAYERS_PAGE_SIZE;
+  return { page, totalPayers, payers: sortedPayers.slice(offset, offset + TRANSACTION_PAYERS_PAGE_SIZE) };
+}
+
+export function groupTransactionsByPayer<T extends { fromUserId: string; fromName: string }>(transactions: readonly T[]) {
+  const grouped = new Map<string, { fromUserId: string; fromName: string; items: T[] }>();
+  for (const transaction of transactions) {
+    const current = grouped.get(transaction.fromUserId);
+    if (current) current.items.push(transaction);
+    else grouped.set(transaction.fromUserId, { fromUserId: transaction.fromUserId, fromName: transaction.fromName, items: [transaction] });
+  }
+  return [...grouped.values()];
 }
 
 export function transactionsHref(filters: TransactionFilters) {
