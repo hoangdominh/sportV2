@@ -27,7 +27,7 @@ export default async function UsersPage() {
       <header className="topbar">
         <div>
           <p className="eyebrow">Quản trị</p>
-          <h1>Quản lý user</h1>
+          <h1>Thành viên</h1>
         </div>
       </header>
 
@@ -35,8 +35,8 @@ export default async function UsersPage() {
         <CreateUserForm />
         <div className="panel">
           <div className="panel-heading">
-            <h2>Danh sách tài khoản</h2>
-            <span>{users.length} user</span>
+            <h2>Danh sách thành viên</h2>
+            <span>{users.length} tài khoản</span>
           </div>
           <div className="user-list">
             {users.map((user) => (

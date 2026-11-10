@@ -10,23 +10,21 @@ export default async function LoginPage() {
 
   return (
     <main className="login-shell">
-      <div className="login-background" aria-hidden="true">
+      <section className="login-brand-panel">
         <Image
-          alt=""
-          className="login-background-image"
+          alt="Minh họa vui nhắc nhau chia tiền sau buổi chơi"
+          className="login-brand-image"
           fill
           priority
-          sizes="100vw"
+          sizes="(max-width: 600px) 100vw, 58vw"
           src="/hinh_che_doi_no_kheo_18_a2facc4820.jpg"
         />
-      </div>
-
-      <section className="login-hero-copy">
-        <p className="eyebrow">Chia tiền nhóm</p>
-        <h1>Chia tiền,<br />ngại nhắc.</h1>
-        <p>Gọn khoản chi. Rõ khoản nợ. Vui trọn cuộc chơi.</p>
+        <div className="login-brand-lockup">
+          <span className="site-brand-mark" aria-hidden="true">S</span>
+          <span><strong>SỔ SÂN</strong><small>QUỸ ĐỘI · MÙA NÀY</small></span>
+        </div>
+        <p className="login-brand-caption">Chơi hết mình. Chia tiền rõ ràng.</p>
       </section>
-
       <section className="login-form-panel">
         <LoginForm />
       </section>

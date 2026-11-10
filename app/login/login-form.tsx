@@ -2,17 +2,19 @@
 
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { navigationStartedAtKey } from "@/components/dashboard-navigation-timing";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, ShieldCheck, UserRound } from "lucide-react";
 
 export function LoginForm() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isNavigating, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -20,20 +22,41 @@ export function LoginForm() {
     setLoading(true);
     setError("");
     const formData = new FormData(event.currentTarget);
-    const result = await signIn("credentials", {
-      username: formData.get("username"),
-      password: formData.get("password"),
-      redirect: false
-    });
-    setLoading(false);
+    const authStartedAt = performance.now();
+    try {
+      const result = await signIn("credentials", {
+        username: formData.get("username"),
+        password: formData.get("password"),
+        redirect: false
+      });
+      console.info("auth.client.timing", {
+        authRequestMs: Math.round(performance.now() - authStartedAt),
+        accepted: !result?.error
+      });
 
-    if (result?.error) {
-      setError("Sai tài khoản hoặc mật khẩu");
-      return;
+      if (result?.error) {
+        setError("Sai tài khoản hoặc mật khẩu");
+        return;
+      }
+
+      try {
+        window.sessionStorage.setItem(navigationStartedAtKey, String(Date.now()));
+      } catch {
+        // Navigation can continue even when browser storage is disabled.
+      }
+
+      startTransition(() => {
+        router.push("/dashboard");
+      });
+    } catch {
+      console.info("auth.client.timing", {
+        authRequestMs: Math.round(performance.now() - authStartedAt),
+        accepted: false
+      });
+      setError("Không kết nối được tới hệ thống. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
     }
-
-    router.push("/dashboard");
-    router.refresh();
   }
 
   return (
@@ -46,7 +69,7 @@ export function LoginForm() {
         </p>
       </CardHeader>
       <CardContent className="login-card-content">
-        <form className="login-form" onSubmit={handleSubmit}>
+        <form aria-busy={loading || isNavigating} className="login-form" onSubmit={handleSubmit}>
           <div className="login-field">
             <Label htmlFor="username">Tên đăng nhập</Label>
             <div className="login-input-wrap">
@@ -84,9 +107,9 @@ export function LoginForm() {
             </div>
           </div>
           {error ? <p className="form-error" role="alert">{error}</p> : null}
-          <Button className="login-submit" disabled={loading} type="submit">
-            <span>{loading ? "Đang kiểm tra…" : "Đăng nhập"}</span>
-            {!loading ? <ArrowRight aria-hidden="true" size={18} /> : null}
+          <Button className="login-submit" disabled={loading || isNavigating} type="submit">
+            <span>{loading ? "Đang kiểm tra tài khoản…" : isNavigating ? "Đang mở sổ quỹ…" : "Đăng nhập"}</span>
+            {!loading && !isNavigating ? <ArrowRight aria-hidden="true" size={18} /> : null}
           </Button>
           <p className="login-security-note">
             <ShieldCheck aria-hidden="true" size={16} />

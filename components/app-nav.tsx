@@ -12,54 +12,43 @@ export function AppNav({ role, userName, userId }: { role: "admin" | "member"; u
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <nav aria-label="Điều hướng chính" className="mb-5 flex flex-col gap-3 rounded-3xl border border-border bg-slate-900/80 px-2 py-2 shadow-lg backdrop-blur-xl sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:rounded-full">
-      <div className="flex w-full items-center gap-1 overflow-x-auto pb-1 sm:w-auto sm:overflow-visible sm:pb-0">
+    <nav aria-label="Điều hướng chính" className="site-nav">
+      <Link className="site-brand" href="/dashboard" aria-label="Sổ Sân, về tổng quan">
+        <span className="site-brand-mark" aria-hidden="true">S</span>
+        <span><strong>SỔ SÂN</strong><small>QUỸ ĐỘI · MÙA NÀY</small></span>
+      </Link>
+      <div className="site-nav-links">
         <Link
           aria-current={isActive("/dashboard") ? "page" : undefined}
-          className={cn(
-            "shrink-0 rounded-full px-3 py-2.5 text-sm font-black transition-colors sm:px-4",
-            isActive("/dashboard")
-              ? "bg-emerald-500/15 text-emerald-400"
-              : "text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-400"
-          )}
+          className={cn("site-nav-link", isActive("/dashboard") && "active")}
           href="/dashboard"
           prefetch={true}
         >
-          Dashboard
+          Tổng quan
         </Link>
         <Link
           aria-current={isActive("/transactions") ? "page" : undefined}
-          className={cn(
-            "shrink-0 rounded-full px-3 py-2.5 text-sm font-black transition-colors sm:px-4",
-            isActive("/transactions")
-              ? "bg-emerald-500/15 text-emerald-400"
-              : "text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-400"
-          )}
+          className={cn("site-nav-link", isActive("/transactions") && "active")}
           href="/transactions"
           prefetch={true}
         >
-          Giao dịch
+          Khoản chuyển
         </Link>
         {role === "admin" ? (
           <Link
             aria-current={isActive("/users") ? "page" : undefined}
-            className={cn(
-              "shrink-0 rounded-full px-3 py-2.5 text-sm font-black transition-colors sm:px-4",
-              isActive("/users")
-                ? "bg-emerald-500/15 text-emerald-400"
-                : "text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-400"
-            )}
+            className={cn("site-nav-link", isActive("/users") && "active")}
             href="/users"
             prefetch={true}
           >
-            User
+            Thành viên
           </Link>
         ) : null}
       </div>
-      <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:flex-nowrap sm:justify-end">
-        <span className="flex min-w-0 items-center gap-2 text-sm font-black text-foreground"><MemberAvatar userId={userId} name={userName} /><span className="truncate">{userName}</span></span>
-        <Badge variant="secondary" className="rounded-full bg-emerald-500/10 text-emerald-400 border-0 text-xs">
-          {role}
+      <div className="site-nav-account">
+        <span className="site-nav-user"><MemberAvatar userId={userId} name={userName} /><span className="truncate">{userName}</span></span>
+        <Badge variant="secondary" className="site-role-badge">
+          {role === "admin" ? "Quản lý" : "Thành viên"}
         </Badge>
         <LogoutButton />
       </div>

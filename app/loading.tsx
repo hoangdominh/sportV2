@@ -1,7 +1,7 @@
 export default function Loading() {
   return (
-    <main className="app-shell" aria-busy="true" aria-label="Đang tải trang">
-      <p role="status" className="mb-5 text-sm text-emerald-200">Đang mở trang…</p>
+    <main className="app-shell page-loading" aria-busy="true" aria-label="Đang tải trang">
+      <p role="status" className="mb-5 text-sm">Đang mở sổ quỹ…</p>
       <div aria-hidden="true" className="space-y-7 animate-pulse motion-reduce:animate-none">
         <div className="h-16 rounded-3xl border border-white/10 bg-slate-900/80" />
         <div className="space-y-3"><div className="h-8 w-44 rounded-lg bg-white/10" /><div className="h-4 w-2/3 rounded bg-white/5" /></div>

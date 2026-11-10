@@ -122,8 +122,8 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
       <header className="topbar transactions-topbar">
         <div>
           <p className="eyebrow">Giao dịch</p>
-          <h1>Từng khoản, đúng từng buổi</h1>
-          <p className="page-intro">Mỗi thẻ là một nghĩa vụ độc lập. QR và xác nhận thanh toán không được gộp giữa các buổi.</p>
+          <h1>Sổ khoản chuyển</h1>
+          <p className="page-intro">Theo dõi khoản cần chuyển theo người, buổi chơi và trạng thái xác nhận.</p>
         </div>
         {session.user.role === "admin" ? <Link className="primary-button" href="/events/new">Tạo buổi mới</Link> : null}
       </header>

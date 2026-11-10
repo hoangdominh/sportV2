@@ -3,18 +3,18 @@ import { SessionProvider } from "@/components/session-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Quản lý chia tiền nhóm",
-  description: "Theo dõi chi tiêu nhóm, tối ưu thanh toán và QR chuyển khoản."
+  title: "Sổ Sân — Quỹ đội",
+  description: "Ghi chi phí, chia quỹ và chốt khoản chuyển sau mỗi buổi chơi."
 };
 
 export const viewport: Viewport = {
-  themeColor: "#050608",
-  colorScheme: "dark"
+  themeColor: "#f1f1f1",
+  colorScheme: "light"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html className="dark" lang="vi" style={{ colorScheme: "dark" }}>
+    <html lang="vi" style={{ colorScheme: "light" }}>
       <body className="relative">
         <div className="relative z-10">
           <SessionProvider>{children}</SessionProvider>

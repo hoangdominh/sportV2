@@ -17,22 +17,49 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.username || !credentials.password) return null;
 
-        const db = await getDb();
-        const user = await db
-          .collection<UserDoc>("users")
-          .findOne({ username: credentials.username.trim().toLowerCase() });
+        const startedAt = performance.now();
+        let dbReadyMs: number | undefined;
+        let userLookupMs: number | undefined;
+        let passwordCheckMs: number | undefined;
+        let stage = "database_connect";
 
-        if (!user) return null;
+        try {
+          const dbStartedAt = performance.now();
+          const db = await getDb();
+          dbReadyMs = performance.now() - dbStartedAt;
 
-        const passwordValid = await bcrypt.compare(credentials.password, user.passwordHash);
-        if (!passwordValid) return null;
+          stage = "user_lookup";
+          const lookupStartedAt = performance.now();
+          const user = await db
+            .collection<UserDoc>("users")
+            .findOne({ username: credentials.username.trim().toLowerCase() });
+          userLookupMs = performance.now() - lookupStartedAt;
 
-        return {
-          id: user._id.toString(),
-          name: user.name,
-          username: user.username,
-          role: user.role
-        };
+          if (!user) return null;
+
+          stage = "password_check";
+          const passwordStartedAt = performance.now();
+          const passwordValid = await bcrypt.compare(credentials.password, user.passwordHash);
+          passwordCheckMs = performance.now() - passwordStartedAt;
+          if (!passwordValid) return null;
+
+          stage = "complete";
+          return {
+            id: user._id.toString(),
+            name: user.name,
+            username: user.username,
+            role: user.role
+          };
+        } finally {
+          // Separate database and password timings without logging user identity or credentials.
+          console.info("auth.credentials.timing", {
+            stage,
+            dbReadyMs: dbReadyMs === undefined ? undefined : Math.round(dbReadyMs),
+            userLookupMs: userLookupMs === undefined ? undefined : Math.round(userLookupMs),
+            passwordCheckMs: passwordCheckMs === undefined ? undefined : Math.round(passwordCheckMs),
+            totalMs: Math.round(performance.now() - startedAt)
+          });
+        }
       }
     })
   ],
